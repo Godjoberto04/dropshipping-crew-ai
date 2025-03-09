@@ -7,8 +7,6 @@ import time
 import random
 import os
 import logging
-import asyncio
-from playwright.async_api import async_playwright
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -65,6 +63,15 @@ class WebScrapingTool(Tool):
                 "image": "img.product-image,img.main-image,img"
             }
         
+        # Configuration des headers pour un scraping respectueux
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Referer': 'https://www.google.com/',
+            'DNT': '1'  # Do Not Track
+        }
+        
         try:
             logger.info(f"Tentative de scraping de {url}")
             
@@ -74,70 +81,53 @@ class WebScrapingTool(Tool):
             # Enregistrer cette requête
             self._add_request_timestamp()
             
-            # Exécuter le scraping avec Playwright de manière asynchrone
-            results = asyncio.run(self._async_scrape_with_playwright(url, selectors))
+            # Effectuer la requête avec timeout plus long pour les sites lents
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
             
-            logger.info(f"Scraping terminé: {len(results)} produits extraits")
-            return results
+            logger.info(f"Page récupérée avec succès: {response.status_code}")
             
-        except Exception as e:
-            logger.error(f"Erreur lors du scraping: {str(e)}")
-            return [{"error": str(e)}]
-    
-    async def _async_scrape_with_playwright(self, url: str, selectors: Dict[str, str]) -> List[Dict]:
-        """
-        Exécute le scraping avec Playwright de manière asynchrone
-        
-        Args:
-            url: URL du site à scraper
-            selectors: Dictionnaire de sélecteurs CSS
+            # Parser le HTML avec lxml parser (plus rapide)
+            soup = BeautifulSoup(response.text, 'lxml')
+            results = []
             
-        Returns:
-            Liste de dictionnaires contenant les données extraites
-        """
-        results = []
-        
-        async with async_playwright() as p:
-            # Lancer un navigateur
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+            # Traiter chaque sélecteur de conteneur de produit séparément
+            product_container_selectors = selectors.get('product_container', 'div.product').split(',')
+            product_containers = []
             
-            # Configuration des headers pour simuler un navigateur réel
-            await page.set_extra_http_headers({
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'DNT': '1'  # Do Not Track
-            })
-            
-            # Naviguer vers l'URL
-            try:
-                await page.goto(url, wait_until="networkidle", timeout=30000)
-            except Exception as e:
-                logger.warning(f"Timeout lors du chargement de la page, continuant avec le contenu disponible: {str(e)}")
-                
-            # Attendre que le contenu soit chargé
-            await page.wait_for_load_state("domcontentloaded")
-            
-            # Récupérer le contenu HTML
-            content = await page.content()
-            
-            # Utiliser BeautifulSoup pour parser le HTML (plus facile pour extraire les données)
-            soup = BeautifulSoup(content, 'html.parser')
-            
-            # Trouver tous les conteneurs de produits
-            product_containers = soup.select(selectors.get('product_container', 'div.product'))
+            for container_selector in product_container_selectors:
+                containers = soup.select(container_selector.strip())
+                if containers:
+                    product_containers.extend(containers)
+                    
             logger.info(f"Nombre de produits trouvés: {len(product_containers)}")
             
+            # Si aucun produit n'est trouvé avec les sélecteurs spécifiques, utiliser une approche générique
+            if not product_containers:
+                logger.warning("Aucun produit trouvé avec les sélecteurs spécifiques, tentative d'extraction générique")
+                # Chercher des éléments qui semblent être des produits (contient prix et nom)
+                potential_products = soup.find_all(['div', 'li', 'article'], class_=lambda c: c and ('product' in c.lower() or 'item' in c.lower()))
+                product_containers = potential_products
+                logger.info(f"Extraction générique: {len(product_containers)} produits potentiels trouvés")
+            
+            # Traiter chaque conteneur de produit
             for container in product_containers:
                 product_data = {}
                 
-                # Extraire chaque élément demandé
-                for field, selector in selectors.items():
+                # Extraire chaque élément demandé en essayant différents sélecteurs
+                for field, selector_str in selectors.items():
                     if field == 'product_container':
                         continue
-                        
-                    element = container.select_one(selector)
+                    
+                    # Essayer chaque sélecteur alternativement
+                    field_selectors = selector_str.split(',')
+                    element = None
+                    
+                    for field_selector in field_selectors:
+                        element = container.select_one(field_selector.strip())
+                        if element:
+                            break
+                    
                     if element:
                         if field == 'price':
                             # Nettoyer le prix (supprimer symboles de devise, etc.)
@@ -148,15 +138,42 @@ class WebScrapingTool(Tool):
                         else:
                             product_data[field] = element.text.strip()
                     else:
-                        product_data[field] = None
+                        # Essayer des techniques alternatives pour trouver des champs communs
+                        if field == 'name':
+                            # Chercher le premier h1, h2, h3 ou élément avec 'title' dans sa classe
+                            name_elem = container.find(['h1', 'h2', 'h3'], class_=lambda c: c and 'title' in c.lower())
+                            if name_elem:
+                                product_data[field] = name_elem.text.strip()
+                            else:
+                                product_data[field] = None
+                        elif field == 'price':
+                            # Chercher tout élément avec 'price' dans sa classe ou son texte
+                            price_elem = container.find(class_=lambda c: c and 'price' in c.lower())
+                            if price_elem:
+                                product_data[field] = self._clean_price(price_elem.text.strip())
+                            else:
+                                # Chercher tout élément contenant un symbole de devise
+                                currency_text = container.find(text=lambda t: t and ('$' in t or '€' in t or '£' in t))
+                                if currency_text:
+                                    product_data[field] = self._clean_price(currency_text.strip())
+                                else:
+                                    product_data[field] = None
+                        else:
+                            product_data[field] = None
                 
-                if product_data:
+                # S'assurer qu'il y a au moins un nom et un prix
+                if product_data.get('name') and product_data.get('price'):
                     results.append(product_data)
             
-            # Fermer le navigateur
-            await browser.close()
-        
-        return results
+            logger.info(f"Scraping terminé: {len(results)} produits extraits")
+            return results
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erreur lors de la requête HTTP: {str(e)}")
+            return [{"error": f"Erreur HTTP: {str(e)}"}]
+        except Exception as e:
+            logger.error(f"Erreur lors du scraping: {str(e)}")
+            return [{"error": str(e)}]
     
     def _clean_price(self, price_text: str) -> float:
         """Nettoie une chaîne de prix et la convertit en nombre"""
