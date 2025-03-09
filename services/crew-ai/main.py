@@ -5,10 +5,9 @@ import logging
 import threading
 import schedule
 from typing import Dict, List, Any, Optional
-from crewai import Agent, Task, Crew, Process
 from dotenv import load_dotenv
-from tools.scraping import WebScrapingTool, ProductAnalysisTool
-from tools.trend_analysis import TrendAnalysisTool
+from tools.scraping import SimpleScrapingTool, SimpleProductAnalysisTool
+from tools.trend_analysis import SimpleTrendAnalysisTool
 from tools.api_client import ApiClient
 
 # Configuration du logging
@@ -38,26 +37,14 @@ os.environ["ANTHROPIC_API_KEY"] = os.getenv("CLAUDE_API_KEY")
 api_client = ApiClient()
 
 # Création des outils
-web_scraping_tool = WebScrapingTool()
-product_analysis_tool = ProductAnalysisTool()
-trend_analysis_tool = TrendAnalysisTool()
-
-# Définition de l'agent Data Analyzer
-data_analyzer = Agent(
-    role="Expert en Analyse de Marché et de Concurrence",
-    goal="Identifier les produits tendance avec une marge potentielle de 30%+ et une faible concurrence",
-    backstory="""Vous êtes un analyste de marché chevronné avec 15 ans d'expérience dans l'identification 
-    des tendances e-commerce et des opportunités de dropshipping. Votre réputation repose sur votre 
-    capacité à trouver des produits à fort potentiel avant qu'ils ne deviennent mainstream.""",
-    verbose=True,
-    allow_delegation=False,
-    tools=[web_scraping_tool, product_analysis_tool, trend_analysis_tool]
-)
+web_scraping_tool = SimpleScrapingTool()
+product_analysis_tool = SimpleProductAnalysisTool()
+trend_analysis_tool = SimpleTrendAnalysisTool()
 
 # Fonction pour exécuter l'analyse de marché
 def run_market_analysis(competitor_urls: List[str], market_segment: str = None, min_margin: float = 30.0, task_id: str = None):
     """
-    Exécute une analyse de marché en utilisant l'agent Data Analyzer
+    Exécute une analyse de marché
     
     Args:
         competitor_urls: Liste des URLs de sites concurrents à analyser
@@ -78,65 +65,6 @@ def run_market_analysis(competitor_urls: List[str], market_segment: str = None, 
             progress=10
         )
     
-    # Définir la tâche principale d'analyse
-    analyze_task_description = """
-    Analyser les sites web de concurrents pour identifier les produits à fort potentiel pour le dropshipping.
-    
-    Suivez ces étapes:
-    1. Scraper chaque URL concurrente pour extraire les données de produits
-    2. Analyser la rentabilité potentielle de chaque produit (marge minimale: {min_margin}%)
-    3. Évaluer le niveau de concurrence pour chaque produit (Faible, Moyen, Élevé)
-    4. Identifier les tendances actuelles du marché et la direction (Hausse, Stable, Baisse)
-    5. Calculer un score de recommandation pour chaque produit (0-10)
-    6. Sélectionner et classer les 10 meilleurs produits selon leur potentiel
-    7. Fournir une justification détaillée pour chaque produit recommandé
-    
-    Focus sur les produits dans le segment: {market_segment}
-    
-    Format attendu:
-    {{
-      "top_products": [
-        {{
-          "name": "Nom du produit",
-          "supplier_price": 0.00,
-          "recommended_price": 0.00,
-          "potential_margin_percent": 00.0,
-          "competition_level": "Low/Medium/High",
-          "trend_direction": "Up/Stable/Down",
-          "recommendation_score": 0.0,
-          "justification": "Justification détaillée"
-        }}
-      ]
-    }}
-    """
-    
-    # Remplacer les placeholders par les valeurs réelles
-    task_description = analyze_task_description.format(
-        min_margin=min_margin,
-        market_segment=market_segment if market_segment else "tous segments"
-    )
-    
-    # Création de la tâche
-    analyze_products_task = Task(
-        description=task_description,
-        expected_output="""Un rapport d'analyse détaillé au format JSON listant les produits les plus 
-        prometteurs avec leurs caractéristiques et scores de recommandation.""",
-        agent=data_analyzer,
-        context=[
-            f"URLs à analyser: {', '.join(competitor_urls)}",
-            f"Segment de marché ciblé: {market_segment if market_segment else 'tous segments'}",
-            f"Marge minimale requise: {min_margin}%"
-        ]
-    )
-    
-    # Création du crew avec l'agent Data Analyzer
-    market_analysis_crew = Crew(
-        agents=[data_analyzer],
-        tasks=[analyze_products_task],
-        verbose=2,
-        process=Process.sequential
-    )
-    
     try:
         # Exécution de l'analyse
         logger.info("Exécution de l'analyse...")
@@ -150,12 +78,28 @@ def run_market_analysis(competitor_urls: List[str], market_segment: str = None, 
                 progress=30
             )
         
-        result = market_analysis_crew.kickoff(
-            inputs={
-                "competitor_urls": competitor_urls,
-                "min_margin": min_margin,
-                "market_segment": market_segment
-            }
+        # Étape 1: Scraping des sites web
+        all_products = []
+        for url in competitor_urls:
+            products = web_scraping_tool.scrape_website(url)
+            if products and not isinstance(products, dict) and not (isinstance(products, list) and products and "error" in products[0]):
+                all_products.extend(products)
+        
+        if not all_products:
+            raise Exception("Aucun produit trouvé sur les sites spécifiés")
+        
+        # Mettre à jour le statut si task_id est fourni
+        if task_id:
+            api_client.update_task_status(
+                task_id=task_id,
+                status="in_progress",
+                progress=50
+            )
+        
+        # Étape 2: Analyse des produits
+        analysis_results = product_analysis_tool.analyze_products(
+            all_products, 
+            min_margin_percent=min_margin
         )
         
         # Mettre à jour le statut si task_id est fourni
@@ -166,74 +110,54 @@ def run_market_analysis(competitor_urls: List[str], market_segment: str = None, 
                 progress=70
             )
         
+        # Étape 3: Analyse des tendances et de la concurrence
+        if "products" in analysis_results:
+            trends_results = trend_analysis_tool.analyze_trends(
+                analysis_results["products"], 
+                market_segment=market_segment
+            )
+            
+            # Combiner les résultats
+            top_products = trends_results.get("top_products", [])
+        else:
+            top_products = []
+        
         execution_time = time.time() - start_time
         logger.info(f"Analyse terminée en {execution_time:.2f} secondes")
         
-        # Traitement et retour des résultats
-        try:
-            # Tentative de parsing des résultats en JSON
-            logger.info("Parsing des résultats...")
-            # Nettoyage des caractères qui pourraient causer des problèmes
-            clean_result = result.replace("```json", "").replace("```", "").strip()
-            results_json = json.loads(clean_result)
-            
-            # Ajout de métadonnées
-            results_json["analysis_metadata"] = {
+        # Construire les résultats finaux
+        results_json = {
+            "top_products": top_products,
+            "analysis_metadata": {
                 "execution_time_seconds": execution_time,
                 "analyzed_urls_count": len(competitor_urls),
                 "market_segment": market_segment,
                 "min_margin_required": min_margin,
                 "timestamp": time.time(),
-                "task_id": task_id
+                "task_id": task_id,
+                "total_products_found": len(all_products),
+                "profitable_products_found": analysis_results.get("profitable_count", 0)
             }
+        }
+        
+        logger.info(f"Analyse réussie: {len(top_products)} produits identifiés")
+        
+        # Enregistrer les résultats via l'API si task_id est fourni
+        if task_id:
+            api_client.update_task_status(
+                task_id=task_id,
+                status="completed",
+                progress=100,
+                result=results_json
+            )
             
-            logger.info(f"Analyse réussie: {len(results_json.get('top_products', [])) if isinstance(results_json, dict) else 0} produits identifiés")
-            
-            # Enregistrer les résultats via l'API si task_id est fourni
-            if task_id:
-                api_client.update_task_status(
-                    task_id=task_id,
-                    status="completed",
-                    progress=100,
-                    result=results_json
-                )
-                
-                # Enregistrer également les résultats dans l'API
-                api_client.register_analysis_results(
-                    results=results_json,
-                    urls=competitor_urls
-                )
-            
-            return results_json
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Erreur lors du parsing des résultats en JSON: {e}")
-            logger.debug(f"Résultat brut: {result}")
-            
-            # Retourner un format standard en cas d'erreur
-            error_result = {
-                "error": "Impossible de parser les résultats en JSON",
-                "raw_result": result,
-                "analysis_metadata": {
-                    "execution_time_seconds": execution_time,
-                    "analyzed_urls_count": len(competitor_urls),
-                    "market_segment": market_segment,
-                    "min_margin_required": min_margin,
-                    "timestamp": time.time(),
-                    "task_id": task_id
-                }
-            }
-            
-            # Mettre à jour le statut si task_id est fourni
-            if task_id:
-                api_client.update_task_status(
-                    task_id=task_id,
-                    status="failed",
-                    progress=100,
-                    result=error_result
-                )
-            
-            return error_result
+            # Enregistrer également les résultats dans l'API
+            api_client.register_analysis_results(
+                results=results_json,
+                urls=competitor_urls
+            )
+        
+        return results_json
             
     except Exception as e:
         logger.error(f"Erreur lors de l'exécution de l'analyse: {str(e)}")
