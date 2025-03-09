@@ -12,7 +12,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 - **IP**: 163.172.160.102
 - **API**: http://163.172.160.102/api/
 - **Dashboard**: http://163.172.160.102/
-- **Statut actuel**: Agent Data Analyzer entièrement opérationnel, Phase "Website Builder" à démarrer
+- **Statut actuel**: Agent Data Analyzer opérationnel, Agent Website Builder implémenté et prêt à être configuré
 
 ## Architecture du système
 
@@ -23,22 +23,22 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
    - Identifie les produits à fort potentiel
    - Génère des rapports d'analyse
 
-2. **Website Builder** 🔄
+2. **Website Builder** ✅
    - Configure et personnalise le site Shopify
    - Gère la structure du site et la navigation
    - Optimise l'expérience utilisateur
 
-3. **Content Generator**
+3. **Content Generator** ⏳
    - Crée du contenu optimisé SEO
    - Génère des descriptions de produits
    - Produit des articles de blog et pages catégories
 
-4. **Order Manager**
+4. **Order Manager** ⏳
    - Gère les commandes entrantes
    - Communique avec les fournisseurs
    - Surveille le statut des envois
 
-5. **Site Updater**
+5. **Site Updater** ⏳
    - Actualise les prix selon la concurrence
    - Met à jour les stocks
    - Ajuste les paramètres du site dynamiquement
@@ -71,6 +71,17 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 │   │       ├── api_client.py
 │   │       ├── scraping.py
 │   │       └── trend_analysis.py
+│   ├── website-builder/
+│   │   ├── Dockerfile
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   └── tools/
+│   │       ├── __init__.py
+│   │       ├── api_client.py
+│   │       ├── shopify_api.py
+│   │       ├── theme_manager.py
+│   │       ├── store_setup.py
+│   │       └── navigation.py
 │   ├── api/
 │   │   ├── Dockerfile
 │   │   ├── requirements.txt
@@ -96,9 +107,9 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 
 ### Mars 2025
 - Migration de l'agent Data Analyzer des outils CrewAI/LangChain vers des classes Python standards pour une meilleure stabilité
-- Mise en place d'un système d'analyse en trois phases : scraping, analyse de produits, analyse de tendances
-- Correction des problèmes de dépendances et de compatibilité
-- Configuration de l'infrastructure avec Docker, Redis et PostgreSQL
+- Implémentation de l'agent Website Builder pour Shopify avec intégration API complète
+- Mise à jour de l'API pour prendre en charge les opérations du Website Builder
+- Mise en place d'un système modulaire pour la gestion des thèmes, la configuration de la boutique et la navigation
 
 ## Installation et déploiement
 
@@ -107,7 +118,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 - Serveur Ubuntu 22.04 LTS
 - Docker et Docker Compose
 - Compte Claude Pro (pour l'API LLM)
-- Compte Shopify Lite
+- Compte Shopify Lite (pour l'agent Website Builder)
 
 ### Installation
 
@@ -120,7 +131,7 @@ cd dropshipping-crew-ai
 2. Configurer les variables d'environnement
 ```bash
 cp .env.example .env
-# Éditer le fichier .env avec vos propres paramètres, notamment votre clé API Claude
+# Éditer le fichier .env avec vos paramètres (clé API Claude, crédentiels Shopify, etc.)
 ```
 
 3. Déployer les services
@@ -138,9 +149,11 @@ sudo bash scripts/deploy_dashboard.sh
 sudo bash scripts/optimize_nginx.sh
 ```
 
-## Comment utiliser l'agent Data Analyzer
+## Comment utiliser les agents
 
-Une fois le système déployé, vous pouvez utiliser l'API pour déclencher des analyses de marché :
+### Agent Data Analyzer
+
+Pour déclencher une analyse de marché :
 
 ```bash
 # Exemple avec curl
@@ -153,35 +166,74 @@ curl -X POST "http://votre-serveur:8000/agents/data-analyzer/analyze" \
   }'
 ```
 
-L'API retournera un ID de tâche que vous pouvez utiliser pour suivre la progression :
+### Agent Website Builder
+
+Pour configurer une nouvelle boutique Shopify :
 
 ```bash
-curl "http://votre-serveur:8000/tasks/{task_id}"
+# Exemple avec curl
+curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "setup_store",
+    "store_config": {
+      "name": "Ma Boutique Dropshipping",
+      "currency": "EUR",
+      "language": "fr",
+      "theme": {
+        "name": "Dawn",
+        "colors": {
+          "primary": "#3b82f6",
+          "secondary": "#10b981"
+        }
+      },
+      "navigation": {
+        "main_menu": [
+          {"title": "Accueil", "url": "/"},
+          {"title": "Produits", "url": "/collections/all"}
+        ]
+      }
+    }
+  }'
 ```
 
-Les résultats d'analyse seront disponibles une fois la tâche terminée :
+Pour ajouter un produit à la boutique :
 
 ```bash
-curl "http://votre-serveur:8000/analysis/results/latest"
+curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "add_product",
+    "product_data": {
+      "title": "Produit Exemple",
+      "description": "Description du produit...",
+      "variants": [
+        {
+          "price": "19.99",
+          "inventory_quantity": 100
+        }
+      ]
+    }
+  }'
 ```
 
-## Étapes suivantes pour le développement
+## Prochaines étapes
 
-1. **Développer l'agent Website Builder** 
-   - Suivre le plan détaillé dans docs/plan-website-builder.md
-   - Implémenter l'intégration avec l'API Shopify
-   - Configurer la création automatisée de boutiques
+1. **Configuration d'un compte Shopify** 
+   - Créer un compte Shopify et sélectionner un forfait (voir [guide détaillé](docs/website-builder-guide.md))
+   - Obtenir les clés API et tokens nécessaires
+   - Configurer les variables d'environnement Shopify dans le fichier .env
 
-2. **Améliorer le dashboard**
-   - Ajouter des visualisations plus avancées (graphiques)
-   - Développer des interfaces pour les autres agents
-   - Mettre en place un système de notifications
+2. **Développement de l'agent Content Generator** 
+   - Créer l'architecture pour l'agent suivant
+   - Développer les outils de génération de contenu SEO
+   - Intégrer avec les agents existants
 
 ## Documentation
 
 Pour plus de détails, consultez les documents suivants :
 
-- [Suivi détaillé du projet](docs/suivi-detaille.md)
+- [Guide de l'agent Website Builder](docs/website-builder-guide.md) ⚠️ **Nouveau!**
 - [Plan de développement de l'agent Website Builder](docs/plan-website-builder.md)
 - [Documentation API](docs/api-doc.md)
 
@@ -189,17 +241,18 @@ Pour plus de détails, consultez les documents suivants :
 
 - Infrastructure Scaleway DEV1-M: ~18€/mois
 - API LLM: Utilisation de l'abonnement Claude Pro existant (0€ supplémentaire)
-- Shopify Lite: ~9€/mois (à implémenter)
-- Proxies basiques: 0-10€/mois (à implémenter)
-- **Total**: ~27-47€/mois
+- Shopify Lite: ~9€/mois
+- Proxies basiques: 0-10€/mois (optionnel)
+- **Total**: ~27-37€/mois
 
 ## Dépannage
 
-Si vous rencontrez des problèmes lors du déploiement, voici quelques solutions :
+Si vous rencontrez des problèmes lors du déploiement :
 
 1. **Problème d'accès à l'API**: Vérifiez que le conteneur est bien démarré avec `docker-compose logs -f api`
-2. **Agent Data Analyzer ne démarre pas**: Vérifiez que votre clé API Claude est correctement configurée dans le fichier `.env`
-3. **Dépendances manquantes**: Si vous rencontrez des erreurs liées aux dépendances, reconstruisez les conteneurs avec `docker-compose build --no-cache`
+2. **Agent Data Analyzer ou Website Builder ne démarre pas**: Vérifiez les variables d'environnement dans `.env`
+3. **Erreurs d'API Shopify**: Vérifiez que vos clés et tokens sont corrects et que votre compte Shopify est actif
+4. **Dépendances manquantes**: Reconstruisez les conteneurs avec `docker-compose build --no-cache`
 
 ## Contact et support
 
