@@ -13,6 +13,7 @@ class TrendAnalysisTool(BaseTool):
     
     name = "TrendAnalysisTool"
     description = "Analyse les tendances des produits et évalue le niveau de concurrence"
+    return_direct = False
     
     def _run(self, products: List[Dict], market_segment: str = None) -> Dict[str, Any]:
         """
