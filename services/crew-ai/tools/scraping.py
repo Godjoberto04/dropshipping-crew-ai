@@ -1,5 +1,3 @@
-from langchain.tools import BaseTool
-from typing import Dict, List, Any, Optional, Tuple
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -7,37 +5,33 @@ import time
 import random
 import os
 import logging
+from typing import Dict, List, Any, Optional, Tuple
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class WebScrapingTool(BaseTool):
+class SimpleScrapingTool:
     """Outil pour scraper des sites web de e-commerce de manière respectueuse"""
     
-    name = "WebScrapingTool"
-    description = "Extrait des données de produits à partir d'URLs e-commerce"
-    return_direct = False
-    
     def __init__(self):
-        super().__init__()
-        # Ces variables sont stockées comme attributs privés pour éviter les conflits avec BaseTool
-        self._max_requests_per_hour = int(os.getenv('MAX_SCRAPING_REQUESTS_PER_HOUR', 100))
-        self._request_timestamps = []
+        """Initialise l'outil de scraping"""
+        self.max_requests_per_hour = int(os.getenv('MAX_SCRAPING_REQUESTS_PER_HOUR', 100))
+        self.request_timestamps = []
     
     def _is_rate_limited(self):
         """Vérifie si nous avons atteint la limite de requêtes par heure"""
         current_time = time.time()
         # Supprimer les timestamps plus anciens qu'une heure
-        self._request_timestamps = [ts for ts in self._request_timestamps if current_time - ts < 3600]
+        self.request_timestamps = [ts for ts in self.request_timestamps if current_time - ts < 3600]
         # Vérifier si nous avons atteint la limite
-        return len(self._request_timestamps) >= self._max_requests_per_hour
+        return len(self.request_timestamps) >= self.max_requests_per_hour
     
     def _add_request_timestamp(self):
         """Ajoute un timestamp pour une nouvelle requête"""
-        self._request_timestamps.append(time.time())
+        self.request_timestamps.append(time.time())
     
-    def _run(self, url: str, selectors: dict = None) -> List[Dict]:
+    def scrape_website(self, url: str, selectors: Dict[str, str] = None) -> List[Dict]:
         """
         Scrape un site e-commerce avec des sélecteurs CSS spécifiques
         
@@ -50,8 +44,8 @@ class WebScrapingTool(BaseTool):
         """
         # Vérifier la limite de requêtes
         if self._is_rate_limited():
-            logger.warning(f"Rate limit atteint: {self._max_requests_per_hour} requêtes par heure")
-            return [{"error": f"Rate limit atteint: {self._max_requests_per_hour} requêtes par heure"}]
+            logger.warning(f"Rate limit atteint: {self.max_requests_per_hour} requêtes par heure")
+            return [{"error": f"Rate limit atteint: {self.max_requests_per_hour} requêtes par heure"}]
         
         # Utiliser des sélecteurs par défaut si non spécifiés
         if not selectors:
@@ -193,14 +187,10 @@ class WebScrapingTool(BaseTool):
             return 0.0
 
 
-class ProductAnalysisTool(BaseTool):
+class SimpleProductAnalysisTool:
     """Outil pour analyser les produits extraits et identifier les opportunités"""
     
-    name = "ProductAnalysisTool"
-    description = "Analyse les produits pour identifier les opportunités de dropshipping"
-    return_direct = False
-    
-    def _run(self, products: List[Dict], min_margin_percent: float = 30.0, shipping_cost: float = 5.0) -> Dict[str, Any]:
+    def analyze_products(self, products: List[Dict], min_margin_percent: float = 30.0, shipping_cost: float = 5.0) -> Dict[str, Any]:
         """
         Analyse une liste de produits pour identifier les meilleures opportunités
         
