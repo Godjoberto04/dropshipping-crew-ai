@@ -1,4 +1,4 @@
-from crewai import Tool
+from langchain.tools import BaseTool
 import logging
 import time
 import random
@@ -8,18 +8,13 @@ from typing import Dict, List, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-class TrendAnalysisTool(Tool):
+class TrendAnalysisTool(BaseTool):
     """Outil pour analyser les tendances des produits et la concurrence"""
     
-    def __init__(self):
-        super().__init__(
-            name="TrendAnalysisTool",
-            description="Analyse les tendances des produits et évalue le niveau de concurrence",
-            func=self.analyze_trends
-        )
-        
-    def analyze_trends(self, products: List[Dict], 
-                       market_segment: str = None) -> Dict[str, Any]:
+    name = "TrendAnalysisTool"
+    description = "Analyse les tendances des produits et évalue le niveau de concurrence"
+    
+    def _run(self, products: List[Dict], market_segment: str = None) -> Dict[str, Any]:
         """
         Analyse les tendances des produits et évalue le niveau de concurrence
         
