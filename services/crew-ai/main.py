@@ -12,12 +12,13 @@ from tools.trend_analysis import TrendAnalysisTool
 from tools.api_client import ApiClient
 
 # Configuration du logging
+os.makedirs('/app/logs', exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('/app/data_analyzer.log')
+        logging.FileHandler('/app/logs/data_analyzer.log')
     ]
 )
 logger = logging.getLogger(__name__)
