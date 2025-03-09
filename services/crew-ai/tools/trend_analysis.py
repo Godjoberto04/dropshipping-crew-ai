@@ -1,4 +1,3 @@
-from langchain.tools import BaseTool
 import logging
 import time
 import random
@@ -8,14 +7,10 @@ from typing import Dict, List, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-class TrendAnalysisTool(BaseTool):
+class SimpleTrendAnalysisTool:
     """Outil pour analyser les tendances des produits et la concurrence"""
     
-    name = "TrendAnalysisTool"
-    description = "Analyse les tendances des produits et évalue le niveau de concurrence"
-    return_direct = False
-    
-    def _run(self, products: List[Dict], market_segment: str = None) -> Dict[str, Any]:
+    def analyze_trends(self, products: List[Dict], market_segment: str = None) -> Dict[str, Any]:
         """
         Analyse les tendances des produits et évalue le niveau de concurrence
         
