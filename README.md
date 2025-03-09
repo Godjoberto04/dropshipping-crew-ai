@@ -1,10 +1,10 @@
 # Dropshipping Autonome avec Crew AI
 
-Système autonome de dropshipping géré par une flotte d'agents d'IA utilisant Crew AI.
+Système autonome de dropshipping géré par une flotte d'agents d'IA.
 
 ## Description du projet
 
-Ce projet vise à créer un système entièrement autonome pour gérer une boutique de dropshipping en exploitant les capacités de Crew AI. Le système est composé de 5 agents spécialisés qui travaillent ensemble pour analyser le marché, créer et gérer une boutique Shopify, générer du contenu optimisé SEO, gérer les commandes et maintenir le site à jour.
+Ce projet vise à créer un système entièrement autonome pour gérer une boutique de dropshipping en exploitant les capacités de Claude et des agents IA. Le système est composé de 5 agents spécialisés qui travaillent ensemble pour analyser le marché, créer et gérer une boutique Shopify, générer du contenu optimisé SEO, gérer les commandes et maintenir le site à jour.
 
 ## Informations sur le déploiement actuel
 
@@ -12,18 +12,18 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 - **IP**: 163.172.160.102
 - **API**: http://163.172.160.102/api/
 - **Dashboard**: http://163.172.160.102/
-- **Statut actuel**: Phase 4 terminée (Interface utilisateur/Dashboard), Phase 5 en cours (Finalisation de l'agent Data Analyzer)
+- **Statut actuel**: Agent Data Analyzer entièrement opérationnel, Phase "Website Builder" à démarrer
 
 ## Architecture du système
 
-### Agents Crew AI
+### Agents
 
-1. **Data Analyzer**
+1. **Data Analyzer** ✅
    - Analyse le marché et les concurrents
    - Identifie les produits à fort potentiel
    - Génère des rapports d'analyse
 
-2. **Website Builder**
+2. **Website Builder** 🔄
    - Configure et personnalise le site Shopify
    - Gère la structure du site et la navigation
    - Optimise l'expérience utilisateur
@@ -68,9 +68,9 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 │   │   ├── requirements.txt
 │   │   └── tools/
 │   │       ├── __init__.py
+│   │       ├── api_client.py
 │   │       ├── scraping.py
-│   │       ├── product_analysis.py
-│   │       └── trend_identification.py
+│   │       └── trend_analysis.py
 │   ├── api/
 │   │   ├── Dockerfile
 │   │   ├── requirements.txt
@@ -92,16 +92,13 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 └── docker-compose.yml
 ```
 
-## Plan d'exécution optimisé
+## Changements récents
 
-Le projet est planifié sur 8 semaines (au lieu des 3-4 mois initialement prévus) :
-
-- **Semaine 1**: ✅ Infrastructure et mise en place initiale
-- **Semaine 2**: 🔄 Finalisation du Data Analyzer et début Website Builder
-- **Semaine 3**: Content Generator et premiers produits
-- **Semaine 4**: Dashboard avancé et optimisations
-- **Semaines 5-6**: Order Manager et gestion des commandes
-- **Semaines 7-8**: Site Updater et finalisation
+### Mars 2025
+- Migration de l'agent Data Analyzer des outils CrewAI/LangChain vers des classes Python standards pour une meilleure stabilité
+- Mise en place d'un système d'analyse en trois phases : scraping, analyse de produits, analyse de tendances
+- Correction des problèmes de dépendances et de compatibilité
+- Configuration de l'infrastructure avec Docker, Redis et PostgreSQL
 
 ## Installation et déploiement
 
@@ -123,7 +120,7 @@ cd dropshipping-crew-ai
 2. Configurer les variables d'environnement
 ```bash
 cp .env.example .env
-# Éditer le fichier .env avec vos propres paramètres
+# Éditer le fichier .env avec vos propres paramètres, notamment votre clé API Claude
 ```
 
 3. Déployer les services
@@ -141,31 +138,51 @@ sudo bash scripts/deploy_dashboard.sh
 sudo bash scripts/optimize_nginx.sh
 ```
 
-## Étapes immédiates (mars 2025)
+## Comment utiliser l'agent Data Analyzer
 
-1. **Finaliser l'agent Data Analyzer**
-   ```bash
-   docker-compose logs data-analyzer
-   # Corriger les problèmes identifiés
-   docker-compose restart data-analyzer
-   ```
+Une fois le système déployé, vous pouvez utiliser l'API pour déclencher des analyses de marché :
 
-2. **Développer l'agent Website Builder**
-   - Créer la structure de base de l'agent
-   - Développer les outils d'intégration avec Shopify
-   - Implémenter les fonctionnalités principales
+```bash
+# Exemple avec curl
+curl -X POST "http://votre-serveur:8000/agents/data-analyzer/analyze" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["https://example-shop.com/category/accessories"],
+    "market_segment": "smartphone accessories",
+    "min_margin": 30.0
+  }'
+```
 
-3. **Améliorer le Dashboard**
-   - Ajouter des visualisations avancées (graphiques)
-   - Améliorer l'interface utilisateur
-   - Ajouter plus de fonctionnalités interactives
+L'API retournera un ID de tâche que vous pouvez utiliser pour suivre la progression :
+
+```bash
+curl "http://votre-serveur:8000/tasks/{task_id}"
+```
+
+Les résultats d'analyse seront disponibles une fois la tâche terminée :
+
+```bash
+curl "http://votre-serveur:8000/analysis/results/latest"
+```
+
+## Étapes suivantes pour le développement
+
+1. **Développer l'agent Website Builder** 
+   - Suivre le plan détaillé dans docs/plan-website-builder.md
+   - Implémenter l'intégration avec l'API Shopify
+   - Configurer la création automatisée de boutiques
+
+2. **Améliorer le dashboard**
+   - Ajouter des visualisations plus avancées (graphiques)
+   - Développer des interfaces pour les autres agents
+   - Mettre en place un système de notifications
 
 ## Documentation
 
 Pour plus de détails, consultez les documents suivants :
 
 - [Suivi détaillé du projet](docs/suivi-detaille.md)
-- [Guide d'utilisation des agents Crew AI](docs/agents-crew-ai.md)
+- [Plan de développement de l'agent Website Builder](docs/plan-website-builder.md)
 - [Documentation API](docs/api-doc.md)
 
 ## Coûts du projet
@@ -175,6 +192,14 @@ Pour plus de détails, consultez les documents suivants :
 - Shopify Lite: ~9€/mois (à implémenter)
 - Proxies basiques: 0-10€/mois (à implémenter)
 - **Total**: ~27-47€/mois
+
+## Dépannage
+
+Si vous rencontrez des problèmes lors du déploiement, voici quelques solutions :
+
+1. **Problème d'accès à l'API**: Vérifiez que le conteneur est bien démarré avec `docker-compose logs -f api`
+2. **Agent Data Analyzer ne démarre pas**: Vérifiez que votre clé API Claude est correctement configurée dans le fichier `.env`
+3. **Dépendances manquantes**: Si vous rencontrez des erreurs liées aux dépendances, reconstruisez les conteneurs avec `docker-compose build --no-cache`
 
 ## Contact et support
 
