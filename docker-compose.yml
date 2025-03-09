@@ -83,6 +83,33 @@ services:
     volumes:
       - ./services/crew-ai:/app
 
+  website-builder:
+    build:
+      context: ./services/website-builder
+    container_name: ${PROJECT_NAME}-website-builder
+    depends_on:
+      - postgres
+      - redis
+      - api
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_URL=http://api:8000
+      - SHOPIFY_API_KEY=${SHOPIFY_API_KEY}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET}
+      - SHOPIFY_STORE_URL=${SHOPIFY_STORE_URL}
+      - SHOPIFY_ACCESS_TOKEN=${SHOPIFY_ACCESS_TOKEN}
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - ./services/website-builder:/app
+
 networks:
   backend:
   frontend:
