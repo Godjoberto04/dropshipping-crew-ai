@@ -12,7 +12,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 - **IP**: 163.172.160.102
 - **API**: http://163.172.160.102:8000/
 - **Dashboard**: http://163.172.160.102/ (après installation de Nginx)
-- **Statut actuel**: Phase 4 (Interface utilisateur) et début de Phase 5 (Agent Data Analyzer)
+- **Statut actuel**: Phase 4 (Interface utilisateur) en cours - Dashboard créé mais incomplet, et début de Phase 5 (Agent Data Analyzer)
 
 ## Architecture du système
 
@@ -140,14 +140,19 @@ sudo bash scripts/setup_nginx.sh
    sudo bash scripts/setup_nginx.sh
    ```
 
-2. **Finaliser l'agent Data Analyzer** en corrigeant les erreurs potentielles
+2. **Optimiser Nginx** pour de meilleures performances
+   ```bash
+   sudo bash scripts/optimize_nginx.sh
+   ```
+
+3. **Finaliser l'agent Data Analyzer** en corrigeant les erreurs potentielles
    ```bash
    docker-compose logs data-analyzer
    # Corriger les problèmes identifiés
    docker-compose restart data-analyzer
    ```
 
-3. **Tester l'API et le dashboard**
+4. **Tester l'API et le dashboard**
    - Accéder à l'API: http://163.172.160.102:8000/
    - Accéder au dashboard: http://163.172.160.102/
 
