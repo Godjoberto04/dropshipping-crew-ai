@@ -9,6 +9,9 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Créer le répertoire pour les logs
+RUN mkdir -p /app/logs
+
 # Installer les dépendances Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -16,8 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copier le code source
 COPY . .
 
-# Créer le répertoire pour les logs
-RUN mkdir -p /app/logs && touch /app/data_analyzer.log && chmod 777 /app/data_analyzer.log
+# Donner les droits d'écriture au répertoire d'application
+RUN chmod -R 777 /app
 
 # Commande de démarrage
 CMD ["python", "main.py"]
