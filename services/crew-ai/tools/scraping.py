@@ -7,6 +7,8 @@ import time
 import random
 import os
 import logging
+import asyncio
+from playwright.async_api import async_playwright
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -63,15 +65,6 @@ class WebScrapingTool(Tool):
                 "image": "img.product-image,img.main-image,img"
             }
         
-        # Configuration des headers pour un scraping respectueux
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Referer': 'https://www.google.com/',
-            'DNT': '1'  # Do Not Track
-        }
-        
         try:
             logger.info(f"Tentative de scraping de {url}")
             
@@ -81,15 +74,56 @@ class WebScrapingTool(Tool):
             # Enregistrer cette requête
             self._add_request_timestamp()
             
-            # Effectuer la requête
-            response = requests.get(url, headers=headers, timeout=15)
-            response.raise_for_status()
+            # Exécuter le scraping avec Playwright de manière asynchrone
+            results = asyncio.run(self._async_scrape_with_playwright(url, selectors))
             
-            logger.info(f"Page récupérée avec succès: {response.status_code}")
+            logger.info(f"Scraping terminé: {len(results)} produits extraits")
+            return results
             
-            # Parser le HTML
-            soup = BeautifulSoup(response.text, 'html.parser')
-            results = []
+        except Exception as e:
+            logger.error(f"Erreur lors du scraping: {str(e)}")
+            return [{"error": str(e)}]
+    
+    async def _async_scrape_with_playwright(self, url: str, selectors: Dict[str, str]) -> List[Dict]:
+        """
+        Exécute le scraping avec Playwright de manière asynchrone
+        
+        Args:
+            url: URL du site à scraper
+            selectors: Dictionnaire de sélecteurs CSS
+            
+        Returns:
+            Liste de dictionnaires contenant les données extraites
+        """
+        results = []
+        
+        async with async_playwright() as p:
+            # Lancer un navigateur
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            
+            # Configuration des headers pour simuler un navigateur réel
+            await page.set_extra_http_headers({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'DNT': '1'  # Do Not Track
+            })
+            
+            # Naviguer vers l'URL
+            try:
+                await page.goto(url, wait_until="networkidle", timeout=30000)
+            except Exception as e:
+                logger.warning(f"Timeout lors du chargement de la page, continuant avec le contenu disponible: {str(e)}")
+                
+            # Attendre que le contenu soit chargé
+            await page.wait_for_load_state("domcontentloaded")
+            
+            # Récupérer le contenu HTML
+            content = await page.content()
+            
+            # Utiliser BeautifulSoup pour parser le HTML (plus facile pour extraire les données)
+            soup = BeautifulSoup(content, 'html.parser')
             
             # Trouver tous les conteneurs de produits
             product_containers = soup.select(selectors.get('product_container', 'div.product'))
@@ -119,15 +153,10 @@ class WebScrapingTool(Tool):
                 if product_data:
                     results.append(product_data)
             
-            logger.info(f"Scraping terminé: {len(results)} produits extraits")
-            return results
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Erreur lors de la requête HTTP: {str(e)}")
-            return [{"error": f"Erreur HTTP: {str(e)}"}]
-        except Exception as e:
-            logger.error(f"Erreur lors du scraping: {str(e)}")
-            return [{"error": str(e)}]
+            # Fermer le navigateur
+            await browser.close()
+        
+        return results
     
     def _clean_price(self, price_text: str) -> float:
         """Nettoie une chaîne de prix et la convertit en nombre"""
