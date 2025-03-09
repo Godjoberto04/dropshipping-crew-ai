@@ -10,9 +10,9 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 
 - **Serveur**: Scaleway DEV1-M (Paris)
 - **IP**: 163.172.160.102
-- **API**: http://163.172.160.102:8000/
-- **Dashboard**: http://163.172.160.102/ (après installation de Nginx)
-- **Statut actuel**: Phase 4 (Interface utilisateur) en cours - Dashboard créé mais incomplet, et début de Phase 5 (Agent Data Analyzer)
+- **API**: http://163.172.160.102/api/
+- **Dashboard**: http://163.172.160.102/
+- **Statut actuel**: Phase 4 terminée (Interface utilisateur/Dashboard), Phase 5 en cours (Finalisation de l'agent Data Analyzer)
 
 ## Architecture du système
 
@@ -77,14 +77,17 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 │   │   └── app/
 │   │       └── main.py
 │   └── dashboard/
-│       ├── Dockerfile
-│       └── nginx/
-│           └── default.conf
+│       ├── css/
+│       │   └── style.css
+│       ├── js/
+│       │   └── dashboard.js
+│       └── index.html
 ├── data/
 ├── logs/
 ├── scripts/
-│   ├── backup.sh
-│   └── setup_nginx.sh
+│   ├── deploy_dashboard.sh
+│   ├── optimize_nginx.sh
+│   └── backup.sh
 ├── .env
 └── docker-compose.yml
 ```
@@ -93,8 +96,8 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 
 Le projet est planifié sur 8 semaines (au lieu des 3-4 mois initialement prévus) :
 
-- **Semaine 1**: Infrastructure et Data Analyzer initial
-- **Semaine 2**: Amélioration Data Analyzer et début Website Builder
+- **Semaine 1**: ✅ Infrastructure et mise en place initiale
+- **Semaine 2**: 🔄 Finalisation du Data Analyzer et début Website Builder
 - **Semaine 3**: Content Generator et premiers produits
 - **Semaine 4**: Dashboard avancé et optimisations
 - **Semaines 5-6**: Order Manager et gestion des commandes
@@ -130,40 +133,40 @@ docker-compose up -d
 
 4. Installer et configurer Nginx
 ```bash
-sudo bash scripts/setup_nginx.sh
+sudo bash scripts/deploy_dashboard.sh
 ```
 
-## Étapes immédiates (9-12 mars 2025)
+5. Optimiser Nginx (facultatif)
+```bash
+sudo bash scripts/optimize_nginx.sh
+```
 
-1. **Installer Nginx** sur le serveur pour servir le dashboard
-   ```bash
-   sudo bash scripts/setup_nginx.sh
-   ```
+## Étapes immédiates (mars 2025)
 
-2. **Optimiser Nginx** pour de meilleures performances
-   ```bash
-   sudo bash scripts/optimize_nginx.sh
-   ```
-
-3. **Finaliser l'agent Data Analyzer** en corrigeant les erreurs potentielles
+1. **Finaliser l'agent Data Analyzer**
    ```bash
    docker-compose logs data-analyzer
    # Corriger les problèmes identifiés
    docker-compose restart data-analyzer
    ```
 
-4. **Tester l'API et le dashboard**
-   - Accéder à l'API: http://163.172.160.102:8000/
-   - Accéder au dashboard: http://163.172.160.102/
+2. **Développer l'agent Website Builder**
+   - Créer la structure de base de l'agent
+   - Développer les outils d'intégration avec Shopify
+   - Implémenter les fonctionnalités principales
+
+3. **Améliorer le Dashboard**
+   - Ajouter des visualisations avancées (graphiques)
+   - Améliorer l'interface utilisateur
+   - Ajouter plus de fonctionnalités interactives
 
 ## Documentation
 
 Pour plus de détails, consultez les documents suivants :
 
-- [Suivi détaillé du projet](docs/suivi-detaille.md) et [Suite](docs/suivi-detaille-suite.md)
-- [Plan macro global](docs/plan-macro-global.md) et [Suite](docs/plan-macro-global-suite.md)
+- [Suivi détaillé du projet](docs/suivi-detaille.md)
 - [Guide d'utilisation des agents Crew AI](docs/agents-crew-ai.md)
-- [Documentation API](docs/api-doc.md) et [Suite](docs/api-doc-suite.md)
+- [Documentation API](docs/api-doc.md)
 
 ## Coûts du projet
 
