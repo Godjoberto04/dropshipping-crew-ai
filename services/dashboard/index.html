@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropshipping Autonome - Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center">
+                <span class="toggle-sidebar" id="sidebarToggle">
+                    <i class="bi bi-list text-white fs-4"></i>
+                </span>
+                <a class="navbar-brand" href="#">Dropshipping Autonome</a>
+            </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i> Paramètres
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profil</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-sliders"></i> Préférences</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right"></i> Déconnexion</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="d-flex">
+        <div class="sidebar" id="sidebar">
+            <div class="p-3">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-target="dashboard-section">
+                            <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-target="agents-section">
+                            <i class="bi bi-robot me-2"></i> Agents IA
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-target="analysis-section">
+                            <i class="bi bi-graph-up me-2"></i> Analyses
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-target="products-section">
+                            <i class="bi bi-box-seam me-2"></i> Produits
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-target="orders-section">
+                            <i class="bi bi-cart me-2"></i> Commandes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-target="settings-section">
+                            <i class="bi bi-gear me-2"></i> Paramètres
+                        </a>
+                    </li>
+                </ul>
+                <hr>
+                <div class="d-grid">
+                    <button class="btn btn-outline-primary" id="refreshStatus">
+                        <i class="bi bi-arrow-repeat"></i> Rafraîchir
+                        <span id="statusRefreshTimer" class="badge bg-light text-dark">30s</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="content" id="content">
+            <!-- Section Dashboard -->
+            <div class="section active" id="dashboard-section">
+                <div class="row mb-4">
+                    <div class="col">
+                        <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+                        <p class="text-muted">Vue d'ensemble du système de dropshipping autonome</p>
+                    </div>
+                </div>
+
+                <!-- Métriques -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <div class="metric-value text-primary">0</div>
+                                <div class="metric-label">Produits Analysés</div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <div class="metric-value text-success">0</div>
+                                <div class="metric-label">Produits en Boutique</div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <div class="metric-value text-info">0</div>
+                                <div class="metric-label">Commandes</div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <div class="metric-value text-warning">0€</div>
+                                <div class="metric-label">Chiffre d'Affaires</div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statut du système -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-hdd-stack"></i> Statut des Services</span>
+                                    <span class="badge bg-light text-primary" id="lastUpdated">Dernière mise à jour: jamais</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="servicesStatus">
+                                    <!-- Généré dynamiquement par JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-header bg-white">
+                                <span><i class="bi bi-cpu"></i> Performance du Serveur</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>CPU</span>
+                                        <span id="cpuValue">0%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Mémoire</span>
+                                        <span id="memoryValue">0%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Disque</span>
+                                        <span id="diskValue">0%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                                <div class="text-center mt-4">
+                                    <span class="badge bg-primary p-2">Serveur: Scaleway DEV1-M (3 vCPUs, 4 GB RAM)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agents IA -->
+                <div class="row mb-4">
+                    <div class="col">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <span><i class="bi bi-robot"></i> Agents IA</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="agentsStatus">
+                                    <!-- Généré dynamiquement par JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Agents -->
+            <div class="section" id="agents-section">
+                <div class="row mb-4">
+                    <div class="col">
+                        <h2><i class="bi bi-robot"></i> Agents IA</h2>
+                        <p class="text-muted">Gestion et surveillance des agents d'intelligence artificielle</p>
+                    </div>
+                </div>
+
+                <!-- Agent Data Analyzer -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-graph-up"></i> Data Analyzer</span>
+                                    <span class="badge bg-warning">Partiellement implémenté</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5>Lancer une analyse de marché</h5>
+                                        <form id="analysisForm" class="mb-4">
+                                            <div class="mb-3">
+                                                <label for="urls" class="form-label">URLs à analyser</label>
+                                                <textarea class="form-control" id="urls" rows="3" placeholder="https://example-shop.com/category/accessories&#10;https://another-shop.com/bestsellers"></textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="marketSegment" class="form-label">Segment de marché (optionnel)</label>
+                                                <input type="text" class="form-control" id="marketSegment" placeholder="Ex: smartphone accessories">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="minMargin" class="form-label">Marge minimale souhaitée (%)</label>
+                                                <input type="range" class="form-range" id="minMargin" min="10" max="80" step="5" value="30">
+                                                <div class="d-flex justify-content-between">
+                                                    <span>10%</span>
+                                                    <span id="minMarginValue">30%</span>
+                                                    <span>80%</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-grid gap-2">
+                                                <button type="submit" class="btn btn-primary" id="runAnalysisBtn">
+                                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="analysisSpinner"></span>
+                                                    Lancer l'analyse
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5>Statut et capacités</h5>
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <h6>Capacités disponibles</h6>
+                                                <div class="mb-2">
+                                                    <span class="badge bg-success">Web Scraping</span>
+                                                    <span class="badge bg-success">Analyse de produits</span>
+                                                </div>
+                                                <h6>Capacités en développement</h6>
+                                                <div class="mb-2">
+                                                    <span class="badge bg-secondary">Analyse de tendances</span>
+                                                    <span class="badge bg-secondary">Évaluation de la concurrence</span>
+                                                </div>
+                                                <hr>
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <strong>Dernière exécution:</strong>
+                                                        <span id="dataAnalyzerLastRun">Jamais</span>
+                                                    </div>
+                                                    <div>
+                                                        <strong>Version:</strong>
+                                                        <span id="dataAnalyzerVersion">0.1.0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="analysisResults">
+                                    <!-- Résultats d'analyse générés dynamiquement -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
