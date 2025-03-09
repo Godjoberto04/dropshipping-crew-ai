@@ -1,4 +1,4 @@
-from crewai import Tool
+from langchain.tools import BaseTool
 from typing import Dict, List, Any
 import requests
 from bs4 import BeautifulSoup
@@ -12,15 +12,14 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class WebScrapingTool(Tool):
+class WebScrapingTool(BaseTool):
     """Outil pour scraper des sites web de e-commerce de manière respectueuse"""
     
+    name = "WebScrapingTool"
+    description = "Extrait des données de produits à partir d'URLs e-commerce"
+    
     def __init__(self):
-        super().__init__(
-            name="WebScrapingTool",
-            description="Extrait des données de produits à partir d'URLs e-commerce",
-            func=self.scrape_website
-        )
+        super().__init__()
         # Limiter le nombre de requêtes
         self.max_requests_per_hour = int(os.getenv('MAX_SCRAPING_REQUESTS_PER_HOUR', 100))
         self.request_timestamps = []
@@ -37,7 +36,7 @@ class WebScrapingTool(Tool):
         """Ajoute un timestamp pour une nouvelle requête"""
         self.request_timestamps.append(time.time())
     
-    def scrape_website(self, url: str, selectors: Dict[str, str] = None) -> List[Dict]:
+    def _run(self, url: str, selectors: Dict[str, str] = None) -> List[Dict]:
         """
         Scrape un site e-commerce avec des sélecteurs CSS spécifiques
         
@@ -193,19 +192,13 @@ class WebScrapingTool(Tool):
             return 0.0
 
 
-class ProductAnalysisTool(Tool):
+class ProductAnalysisTool(BaseTool):
     """Outil pour analyser les produits extraits et identifier les opportunités"""
     
-    def __init__(self):
-        super().__init__(
-            name="ProductAnalysisTool",
-            description="Analyse les produits pour identifier les opportunités de dropshipping",
-            func=self.analyze_products
-        )
+    name = "ProductAnalysisTool"
+    description = "Analyse les produits pour identifier les opportunités de dropshipping"
     
-    def analyze_products(self, products: List[Dict], 
-                         min_margin_percent: float = 30.0, 
-                         shipping_cost: float = 5.0) -> Dict[str, Any]:
+    def _run(self, products: List[Dict], min_margin_percent: float = 30.0, shipping_cost: float = 5.0) -> Dict[str, Any]:
         """
         Analyse une liste de produits pour identifier les meilleures opportunités
         
