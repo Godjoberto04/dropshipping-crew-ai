@@ -2,7 +2,68 @@
 
 Ce document présente un suivi détaillé de l'avancement du projet, avec les étapes réalisées, les problèmes rencontrés et les solutions appliquées.
 
-## 9 mars 2025 - Finalisation de l'agent Data Analyzer
+## 9 mars 2025 (soir) - Refonte de l'architecture des agents et correction des problèmes de dépendances
+
+### Étapes réalisées
+
+1. **Refonte complète de l'architecture de l'agent Data Analyzer**
+   - Remplacement des outils basés sur CrewAI/LangChain par des classes Python standards
+   - Développement d'un système modulaire à trois phases : scraping, analyse de produits, analyse de tendances
+   - Utilisation d'une approche simplifiée sans dépendances complexes
+
+2. **Résolution des problèmes de compatibilité**
+   - Correction des conflits de dépendances entre crewai et langchain
+   - Élimination des problèmes liés aux modèles Pydantic V1/V2
+   - Simplification globale des dépendances du projet
+
+3. **Amélioration de la robustesse du scraping**
+   - Implémentation de techniques de fallback pour l'extraction de produits
+   - Gestion améliorée des erreurs et des cas limites
+   - Mécanismes de nettoyage et de normalisation des données
+
+4. **Intégration API renforcée**
+   - Client API plus solide pour la communication avec FastAPI
+   - Système complet de gestion des tâches asynchrones
+   - Stockage des résultats d'analyse dans PostgreSQL
+
+### Problèmes rencontrés et solutions
+
+1. **Conflits entre les versions de langchain et crewai**
+   - Problème: Impossibilité d'utiliser à la fois crewai 0.28.1 et langchain 0.0.267
+   - Solution: Migration vers des classes Python standards sans utiliser ces bibliothèques
+
+2. **Problèmes avec les classes Tool de crewai et BaseTool de langchain**
+   - Problème: Impossibilité d'ajouter des attributs personnalisés aux classes d'outils
+   - Solution: Développement de classes d'outils personnalisées sans héritage de Tool/BaseTool
+
+3. **Problèmes avec Pydantic V1/V2**
+   - Problème: Avertissements et erreurs liés au mélange des modèles Pydantic V1 et V2
+   - Solution: Élimination complète de la dépendance à Pydantic
+
+4. **Complexité de l'architecture initiale**
+   - Problème: Architecture trop complexe avec trop de dépendances externes
+   - Solution: Simplification de l'architecture pour une maintenance plus facile
+
+### État actuel
+
+- **Infrastructure**: Entièrement fonctionnelle (PostgreSQL, Redis, FastAPI, Nginx)
+- **Dashboard**: Déployé et accessible à http://163.172.160.102/
+- **API**: Opérationnelle et accessible à http://163.172.160.102/api/
+- **Agent Data Analyzer**: Entièrement implémenté et opérationnel avec une architecture simplifiée
+
+## Prochaines étapes
+
+1. **Développer l'agent Website Builder**
+   - Créer la structure de base de l'agent en suivant le modèle simplifié
+   - Développer l'intégration avec l'API Shopify
+   - Implémenter la création et configuration automatisée de boutiques
+
+2. **Améliorer le dashboard**
+   - Intégrer des visualisations des résultats d'analyse
+   - Créer des interfaces pour gérer les différents agents
+   - Développer un système de notifications et d'alertes
+
+## 9 mars 2025 (matin) - Finalisation de l'agent Data Analyzer
 
 ### Étapes réalisées
 
@@ -36,26 +97,7 @@ Ce document présente un suivi détaillé de l'avancement du projet, avec les é
    - Problème: Besoin de stocker les résultats d'analyse de manière persistante
    - Solution: Utilisation de PostgreSQL avec un schéma optimisé pour les requêtes fréquentes
 
-### État actuel
-
-- **Infrastructure**: Entièrement fonctionnelle (PostgreSQL, Redis, FastAPI, Nginx)
-- **Dashboard**: Déployé et accessible à http://163.172.160.102/
-- **API**: Opérationnelle et accessible à http://163.172.160.102/api/
-- **Agent Data Analyzer**: Entièrement implémenté et fonctionnel
-
-## Prochaines étapes
-
-1. **Développer l'agent Website Builder**
-   - Créer la structure de base de l'agent
-   - Mettre en place l'intégration avec Shopify
-   - Développer les fonctionnalités d'automatisation pour la création de boutique
-
-2. **Améliorer le dashboard**
-   - Ajouter des visualisations plus avancées (graphiques)
-   - Développer des interfaces pour les autres agents
-   - Mettre en place un système de notifications
-
-## 9 mars 2025 (matin) - Installation et configuration de l'infrastructure
+## 9 mars 2025 (début de journée) - Installation et configuration de l'infrastructure
 
 ### Étapes réalisées
 
