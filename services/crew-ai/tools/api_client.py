@@ -4,6 +4,7 @@ import logging
 import requests
 from typing import Dict, List, Any, Optional
 from datetime import datetime
+from langchain.tools import BaseTool
 
 logger = logging.getLogger(__name__)
 
