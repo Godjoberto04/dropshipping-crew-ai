@@ -89,3 +89,92 @@ async def get_db_pool():
         database=postgres_db,
         host=postgres_host
     )
+
+# Gestionnaire de démarrage/arrêt pour initialiser et fermer les connexions
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialiser la connexion PostgreSQL
+    app.state.db_pool = await get_db_pool()
+    
+    # Créer les tables si elles n'existent pas
+    async with app.state.db_pool.acquire() as conn:
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS analyses (
+                id SERIAL PRIMARY KEY,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                market_segment VARCHAR(255),
+                min_margin FLOAT,
+                analyzed_urls_count INTEGER,
+                execution_time_seconds FLOAT,
+                results JSONB
+            )
+        ''')
+        
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS tasks (
+                id VARCHAR(36) PRIMARY KEY,
+                agent_id VARCHAR(50) NOT NULL,
+                status VARCHAR(20) NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                progress INTEGER,
+                params JSONB,
+                result JSONB
+            )
+        ''')
+        
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS agents (
+                id VARCHAR(50) PRIMARY KEY,
+                status VARCHAR(20) NOT NULL,
+                version VARCHAR(20),
+                capabilities JSONB,
+                last_run TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+        ''')
+
+        # Nouvelles tables pour le Website Builder
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS stores (
+                id SERIAL PRIMARY KEY,
+                store_url VARCHAR(255) NOT NULL,
+                config JSONB,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+        ''')
+
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS products (
+                id SERIAL PRIMARY KEY,
+                product_id VARCHAR(255) NOT NULL,
+                store_url VARCHAR(255) NOT NULL,
+                data JSONB,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+        ''')
+    
+    # Initialiser la connexion Redis
+    app.state.redis = await get_redis()
+    
+    yield
+    
+    # Fermer les connexions
+    await app.state.db_pool.close()
+    await app.state.redis.close()
+
+app = FastAPI(
+    title="Dropshipping Crew AI API",
+    lifespan=lifespan
+)
+
+# Configurer CORS pour permettre les requêtes depuis le dashboard
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En production, spécifier les origines exactes
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
