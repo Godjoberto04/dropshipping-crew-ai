@@ -53,6 +53,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 - **Frontend**: Dashboard HTML/CSS/JS (Nginx)
 - **Proxy**: Nginx (hors Docker)
 - **E-commerce**: Shopify Lite
+- **Orchestration**: API centralisée avec moteur de workflows ⚠️ **Nouveau!**
 
 ## Structure du projet
 
@@ -106,6 +107,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 ## Changements récents
 
 ### Mars 2025
+- **NOUVEAU** 🔥 : Plan d'amélioration de l'API pour l'orchestration des workflows entre agents
 - **NOUVEAU** 🔥 : Adoption d'une stratégie d'intégration de ressources communautaires de qualité pour accélérer le développement
 - **NOUVEAU** 🔥 : Plans d'amélioration détaillés pour l'agent Data Analyzer et Website Builder
 - Migration de l'agent Data Analyzer des outils CrewAI/LangChain vers des classes Python standards pour une meilleure stabilité
@@ -244,13 +246,19 @@ curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
    - Développer les outils de génération de contenu SEO
    - Intégrer avec les agents existants
 
+4. **Amélioration de l'API pour l'orchestration**
+   - Implémentation du moteur de workflows
+   - Développement du système d'événements et déclencheurs
+   - Extension du tableau de bord pour le monitoring des workflows
+
 ## Documentation
 
 Pour plus de détails, consultez les documents suivants :
 
-- [Stratégie d'intégration des ressources communautaires](docs/community-resources-integration.md) ⚠️ **Nouveau!**
-- [Plan d'amélioration de l'agent Data Analyzer](docs/plan-data-analyzer-amelioration.md) ⚠️ **Nouveau!**
-- [Plan d'amélioration de l'agent Website Builder](docs/plan-website-builder-amelioration.md) ⚠️ **Nouveau!**
+- [Plan d'amélioration de l'API pour l'orchestration](docs/plan-amelioration-api-orchestration.md) ⚠️ **Nouveau!**
+- [Stratégie d'intégration des ressources communautaires](docs/community-resources-integration.md)
+- [Plan d'amélioration de l'agent Data Analyzer](docs/plan-data-analyzer-amelioration.md)
+- [Plan d'amélioration de l'agent Website Builder](docs/plan-website-builder-amelioration.md)
 - [Guide de l'agent Website Builder](docs/website-builder-guide.md)
 - [Documentation API](docs/api-doc.md)
 
