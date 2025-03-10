@@ -28,7 +28,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
    - Gère la structure du site et la navigation
    - Optimise l'expérience utilisateur
 
-3. **Content Generator** ⏳
+3. **Content Generator** 🔄
    - Crée du contenu optimisé SEO
    - Génère des descriptions de produits
    - Produit des articles de blog et pages catégories
@@ -106,10 +106,22 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 ## Changements récents
 
 ### Mars 2025
+- **NOUVEAU** 🔥 : Adoption d'une stratégie d'intégration de ressources communautaires de qualité pour accélérer le développement
+- **NOUVEAU** 🔥 : Plans d'amélioration détaillés pour l'agent Data Analyzer et Website Builder
 - Migration de l'agent Data Analyzer des outils CrewAI/LangChain vers des classes Python standards pour une meilleure stabilité
 - Implémentation de l'agent Website Builder pour Shopify avec intégration API complète
 - Mise à jour de l'API pour prendre en charge les opérations du Website Builder
 - Mise en place d'un système modulaire pour la gestion des thèmes, la configuration de la boutique et la navigation
+
+## Politique d'intégration des composants communautaires
+
+Le projet adopte désormais une approche hybride qui privilégie l'intégration et l'adaptation de composants communautaires de qualité lorsqu'ils existent, plutôt que de tout développer à partir de zéro. Cette stratégie permet :
+
+- D'accélérer le développement des agents
+- D'améliorer la robustesse en utilisant des composants éprouvés
+- De concentrer nos efforts sur les aspects à valeur ajoutée
+
+Pour plus d'informations, consultez notre [Stratégie d'intégration des ressources communautaires](docs/community-resources-integration.md) et notre [Résumé des intégrations](docs/resume-integration-composants-communautaires.md).
 
 ## Installation et déploiement
 
@@ -219,13 +231,16 @@ curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
 
 ## Prochaines étapes
 
-1. **Configuration d'un compte Shopify** 
-   - Créer un compte Shopify et sélectionner un forfait (voir [guide détaillé](docs/website-builder-guide.md))
-   - Obtenir les clés API et tokens nécessaires
-   - Configurer les variables d'environnement Shopify dans le fichier .env
+1. **Amélioration de l'agent Data Analyzer**
+   - Implémentation du plan d'amélioration détaillé (voir [plan complet](docs/plan-data-analyzer-amelioration.md))
+   - Intégration des composants communautaires pour l'analyse de tendances et scoring
 
-2. **Développement de l'agent Content Generator** 
-   - Créer l'architecture pour l'agent suivant
+2. **Amélioration de l'agent Website Builder**
+   - Implémentation du plan d'amélioration détaillé (voir [plan complet](docs/plan-website-builder-amelioration.md))
+   - Intégration des composants pour l'optimisation SEO et CRO
+
+3. **Développement de l'agent Content Generator** 
+   - Création de l'architecture pour l'agent suivant
    - Développer les outils de génération de contenu SEO
    - Intégrer avec les agents existants
 
@@ -233,8 +248,10 @@ curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
 
 Pour plus de détails, consultez les documents suivants :
 
-- [Guide de l'agent Website Builder](docs/website-builder-guide.md) ⚠️ **Nouveau!**
-- [Plan de développement de l'agent Website Builder](docs/plan-website-builder.md)
+- [Stratégie d'intégration des ressources communautaires](docs/community-resources-integration.md) ⚠️ **Nouveau!**
+- [Plan d'amélioration de l'agent Data Analyzer](docs/plan-data-analyzer-amelioration.md) ⚠️ **Nouveau!**
+- [Plan d'amélioration de l'agent Website Builder](docs/plan-website-builder-amelioration.md) ⚠️ **Nouveau!**
+- [Guide de l'agent Website Builder](docs/website-builder-guide.md)
 - [Documentation API](docs/api-doc.md)
 
 ## Coûts du projet
