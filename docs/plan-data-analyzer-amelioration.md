@@ -153,3 +153,42 @@ Cette transformation sera réalisée en combinant le développement de fonctionn
 - **Bénéfice** : Priorisation des opportunités les plus sûres
 - **Implémentation** : Modèle bayésien ou ensemble learning pour estimer l'incertitude
 - **Métriques clés** : Indice de confiance (0-100%), facteurs d'incertitude, niveau de risque
+
+## Intégration des ressources communautaires
+
+Pour éviter de partir de zéro et accélérer le développement, nous proposons d'intégrer plusieurs ressources développées par la communauté.
+
+### 1. Bibliothèques d'analyse e-commerce existantes
+
+| Projet | Description | Composants à réutiliser |
+|--------|-------------|-------------------------|
+| [PyTrends](https://github.com/GeneralMills/pytrends) | Interface Python pour Google Trends | Module complet d'analyse de tendances |
+| [Product Intelligence](https://github.com/topics/product-analytics) | Framework d'analyse produit | Algorithmes de scoring et évaluation |
+| [EcommerceML](https://github.com/topics/ecommerce-machine-learning) | Modèles ML pour e-commerce | Prédicteurs de tendances et classifications |
+| [Price Tracker](https://github.com/topics/price-tracking) | Monitoring de prix | Algorithmes de détection de variations |
+
+### 2. Agents CrewAI/LangChain adaptables
+
+| Agent | Fonctionnalités | Adaptation requise |
+|-------|----------------|-------------------|
+| [Market Researcher Agent](https://github.com/crewai/crewai-examples) | Analyse des tendances et marchés | Spécialisation pour dropshipping |
+| [Trend Analyzer](https://github.com/langchain-ai/langchain/tree/master/templates/ecommerce) | Analyse de tendances | Intégration au workflow |
+| [Product Evaluator](https://github.com/topics/ai-agents) | Évaluation multicritères | Ajustement des critères |
+| [SEO Analyzer](https://github.com/topics/seo-tools) | Analyse de potentiel SEO | Focus sur e-commerce |
+
+### 3. Solutions de scraping adaptables
+
+| Solution | Cible | Avantages |
+|----------|-------|-----------|
+| [Scrapy E-commerce Templates](https://github.com/topics/ecommerce-scraping) | Marketplaces principales | Templates prêts à l'emploi |
+| [AliExpress Scraper](https://github.com/topics/aliexpress-api) | AliExpress | Accès aux données fournisseurs |
+| [Amazon Product API](https://github.com/topics/amazon-product-api) | Amazon | Richesse des métadonnées |
+| [Etsy API Tools](https://github.com/topics/etsy-api) | Etsy | Données sur produits artisanaux |
+
+### 4. Modèles prédictifs préentraînés
+
+| Modèle | Application | Bénéfices |
+|--------|-------------|-----------|
+| [Sales Forecasting Models](https://github.com/topics/sales-forecasting) | Prédiction des ventes | Modèles déjà entraînés |
+| [Trend Prediction](https://github.com/topics/trend-analysis) | Analyse de tendances | Algorithmes optimisés |
+| [Seasonal Forecasting](https://github.com/topics/seasonal-forecasting) | Prédiction saisonnière | Intégration des facteurs saisonniers |
