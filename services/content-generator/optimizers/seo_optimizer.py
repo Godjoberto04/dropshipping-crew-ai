@@ -115,3 +115,143 @@ class SEOOptimizer:
             densities[keyword] = density
         
         return densities
+    
+    def optimize(
+        self,
+        content: str,
+        keywords: List[str],
+        content_type: str = "product_description"
+    ) -> str:
+        """
+        Optimise un contenu pour le SEO.
+        
+        Args:
+            content: Contenu à optimiser
+            keywords: Liste des mots-clés cibles
+            content_type: Type de contenu (product_description, category_page, blog_article)
+            
+        Returns:
+            Contenu optimisé
+        """
+        logger.info(f"Optimisation SEO pour contenu de type {content_type} avec {len(keywords)} mots-clés")
+        
+        # Analyse initiale
+        initial_densities = self.analyze_keyword_density(content, keywords)
+        logger.debug(f"Densités initiales: {initial_densities}")
+        
+        # Version optimisée du contenu (pour l'instant, identique)
+        optimized_content = content
+        
+        # Vérifier la présence des mots-clés dans les titres (h1, h2, h3)
+        heading_matches = 0
+        headings = re.findall(r'(#{1,3})\s+(.+)$', content, re.MULTILINE)
+        
+        if headings:
+            for heading_level, heading_text in headings:
+                if any(keyword.lower() in heading_text.lower() for keyword in keywords):
+                    heading_matches += 1
+        
+        # Si aucun mot-clé dans les titres, suggérer des améliorations
+        if len(headings) > 0 and heading_matches == 0:
+            logger.debug("Aucun mot-clé trouvé dans les titres")
+            # Dans cette version de base, nous ne modifions pas automatiquement les titres
+            # Mais une version plus avancée pourrait le faire
+        
+        # Vérifier la présence des mots-clés dans les premiers et derniers paragraphes
+        paragraphs = re.split(r'\n\s*\n', content)
+        
+        # Vérifications basiques (pour cette version simplifiée)
+        if len(paragraphs) < self.min_paragraph_count:
+            logger.debug(f"Nombre de paragraphes insuffisant: {len(paragraphs)} < {self.min_paragraph_count}")
+        
+        # Pour l'instant, cette première version ne modifie pas le contenu
+        # mais effectue une analyse et des recommandations.
+        # Une future version pourrait automatiquement améliorer le contenu.
+        
+        return optimized_content
+    
+    def generate_meta_description(
+        self,
+        content: str,
+        product_name: str,
+        max_length: int = 160
+    ) -> str:
+        """
+        Génère une méta-description optimisée SEO à partir du contenu.
+        
+        Args:
+            content: Contenu à analyser
+            product_name: Nom du produit ou titre principal
+            max_length: Longueur maximale de la méta-description
+            
+        Returns:
+            Méta-description optimisée
+        """
+        # Extraire le premier paragraphe (généralement l'introduction)
+        paragraphs = re.split(r'\n\s*\n', content.strip())
+        
+        # Supprimer les titres markdown
+        paragraphs = [re.sub(r'^#{1,6}\s+.*$', '', p, flags=re.MULTILINE) for p in paragraphs]
+        
+        # Trouver le premier paragraphe non vide
+        first_paragraph = ""
+        for p in paragraphs:
+            p = p.strip()
+            if p and not p.startswith('*') and not p.startswith('#'):
+                first_paragraph = p
+                break
+        
+        if not first_paragraph:
+            # Fallback: utiliser le contenu complet
+            first_paragraph = re.sub(r'#{1,6}\s+', '', content)
+        
+        # Nettoyer le paragraphe (supprimer les sauts de ligne, espaces multiples, etc.)
+        first_paragraph = re.sub(r'\s+', ' ', first_paragraph).strip()
+        
+        # S'assurer que le nom du produit est présent
+        if product_name.lower() not in first_paragraph.lower():
+            first_paragraph = f"{product_name} - {first_paragraph}"
+        
+        # Tronquer à la bonne longueur en respectant les mots complets
+        if len(first_paragraph) <= max_length:
+            return first_paragraph
+        
+        # Trouver le dernier espace avant la limite de longueur
+        truncate_index = first_paragraph.rfind(' ', 0, max_length - 3)
+        if truncate_index == -1:
+            # Si pas d'espace trouvé, simplement tronquer
+            truncate_index = max_length - 3
+        
+        return first_paragraph[:truncate_index] + "..."
+    
+    def calculate_improvement_score(
+        self,
+        original_content: str,
+        optimized_content: str
+    ) -> float:
+        """
+        Calcule un score d'amélioration entre le contenu original et optimisé.
+        
+        Args:
+            original_content: Contenu original
+            optimized_content: Contenu optimisé
+            
+        Returns:
+            Score d'amélioration (0-100)
+        """
+        # Cette méthode est très simplifiée pour la première version
+        # Une version plus complète pourrait analyser plusieurs facteurs
+        
+        # Pour l'instant, retourne un score basé uniquement sur la différence de longueur
+        original_words = len(re.findall(r'\b\w+\b', original_content))
+        optimized_words = len(re.findall(r'\b\w+\b', optimized_content))
+        
+        # Si le contenu optimisé est plus court, considérer qu'il n'y a pas d'amélioration
+        if optimized_words <= original_words:
+            return 0.0
+        
+        # Calculer l'amélioration en pourcentage (plafonné à 20%)
+        improvement = min((optimized_words - original_words) / original_words * 100, 20.0)
+        
+        # Attribuer un score de base de 80% + l'amélioration
+        return 80.0 + improvement
