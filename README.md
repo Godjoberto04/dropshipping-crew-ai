@@ -12,7 +12,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 - **IP**: 163.172.160.102
 - **API**: http://163.172.160.102/api/
 - **Dashboard**: http://163.172.160.102/
-- **Statut actuel**: Agent Data Analyzer opérationnel, Agent Website Builder implémenté et prêt à être configuré
+- **Statut actuel**: Agents Data Analyzer et Website Builder opérationnels, Agent Content Generator implémenté
 
 ## Architecture du système
 
@@ -28,7 +28,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
    - Gère la structure du site et la navigation
    - Optimise l'expérience utilisateur
 
-3. **Content Generator** 🔄
+3. **Content Generator** ✅
    - Crée du contenu optimisé SEO
    - Génère des descriptions de produits
    - Produit des articles de blog et pages catégories
@@ -83,6 +83,28 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 │   │       ├── theme_manager.py
 │   │       ├── store_setup.py
 │   │       └── navigation.py
+│   ├── content-generator/
+│   │   ├── Dockerfile
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── requirements.txt
+│   │   ├── generators/
+│   │   │   ├── __init__.py
+│   │   │   └── product_description.py
+│   │   ├── optimizers/
+│   │   │   ├── __init__.py
+│   │   │   └── seo_optimizer.py
+│   │   ├── templates/
+│   │   │   ├── __init__.py
+│   │   │   └── product_templates.py
+│   │   ├── tools/
+│   │   │   ├── __init__.py
+│   │   │   ├── api_client.py
+│   │   │   └── claude_client.py
+│   │   └── integrations/
+│   │       ├── __init__.py
+│   │       ├── data_analyzer.py
+│   │       └── shopify.py
 │   ├── api/
 │   │   ├── Dockerfile
 │   │   ├── requirements.txt
@@ -107,6 +129,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 ## Changements récents
 
 ### Mars 2025
+- **NOUVEAU** 🔥 : Implémentation de l'agent Content Generator pour la génération automatique de contenu optimisé SEO
 - **NOUVEAU** 🔥 : Plan d'amélioration de l'API pour l'orchestration des workflows entre agents
 - **NOUVEAU** 🔥 : Adoption d'une stratégie d'intégration de ressources communautaires de qualité pour accélérer le développement
 - **NOUVEAU** 🔥 : Plans d'amélioration détaillés pour l'agent Data Analyzer et Website Builder
@@ -211,23 +234,39 @@ curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
   }'
 ```
 
-Pour ajouter un produit à la boutique :
+### Agent Content Generator
+
+Pour générer une description de produit :
 
 ```bash
-curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
+# Exemple avec curl
+curl -X POST "http://votre-serveur:8000/agents/content-generator/action" \
   -H "Content-Type: application/json" \
   -d '{
-    "action": "add_product",
+    "action": "generate_product_description",
     "product_data": {
-      "title": "Produit Exemple",
-      "description": "Description du produit...",
-      "variants": [
-        {
-          "price": "19.99",
-          "inventory_quantity": 100
-        }
-      ]
-    }
+      "name": "Écouteurs Bluetooth Premium",
+      "features": ["Autonomie 24h", "Suppression active du bruit", "Résistant à l'eau"],
+      "price": "89.99",
+      "brand": "TechSound"
+    },
+    "tone": "persuasif",
+    "niche": "electronics",
+    "language": "fr",
+    "auto_publish": false
+  }'
+```
+
+Pour optimiser un contenu existant :
+
+```bash
+curl -X POST "http://votre-serveur:8000/agents/content-generator/action" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "optimize_content",
+    "content": "Votre contenu à optimiser...",
+    "content_type": "product_description",
+    "keywords": ["mot-clé 1", "mot-clé 2"]
   }'
 ```
 
@@ -241,12 +280,17 @@ curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
    - Implémentation du plan d'amélioration détaillé (voir [plan complet](docs/plan-website-builder-amelioration.md))
    - Intégration des composants pour l'optimisation SEO et CRO
 
-3. **Développement de l'agent Content Generator** 
-   - Création de l'architecture pour l'agent suivant
-   - Développer les outils de génération de contenu SEO
-   - Intégrer avec les agents existants
+3. **Extension de l'agent Content Generator** 
+   - Phase 2 : Ajout des générateurs de pages catégories et articles de blog
+   - Optimisation SEO avancée et adaptateurs de niche spécialisés
+   - Intégration complète avec le système de workflows
 
-4. **Amélioration de l'API pour l'orchestration**
+4. **Développement de l'agent Order Manager**
+   - Début du développement du quatrième agent
+   - Intégration avec les fournisseurs et API Shopify
+   - Suivi automatisé des commandes
+
+5. **Amélioration de l'API pour l'orchestration**
    - Implémentation du moteur de workflows
    - Développement du système d'événements et déclencheurs
    - Extension du tableau de bord pour le monitoring des workflows
@@ -255,10 +299,12 @@ curl -X POST "http://votre-serveur:8000/agents/website-builder/action" \
 
 Pour plus de détails, consultez les documents suivants :
 
-- [Plan d'amélioration de l'API pour l'orchestration](docs/plan-amelioration-api-orchestration.md) ⚠️ **Nouveau!**
+- [Plan d'amélioration de l'API pour l'orchestration](docs/plan-amelioration-api-orchestration.md)
 - [Stratégie d'intégration des ressources communautaires](docs/community-resources-integration.md)
 - [Plan d'amélioration de l'agent Data Analyzer](docs/plan-data-analyzer-amelioration.md)
 - [Plan d'amélioration de l'agent Website Builder](docs/plan-website-builder-amelioration.md)
+- [Plan du Content Generator](docs/plan-content-generator.md) ⚠️ **Nouveau!**
+- [Guide de l'agent Content Generator](docs/content-generator-guide.md) ⚠️ **Nouveau!**
 - [Guide de l'agent Website Builder](docs/website-builder-guide.md)
 - [Documentation API](docs/api-doc.md)
 
@@ -277,7 +323,8 @@ Si vous rencontrez des problèmes lors du déploiement :
 1. **Problème d'accès à l'API**: Vérifiez que le conteneur est bien démarré avec `docker-compose logs -f api`
 2. **Agent Data Analyzer ou Website Builder ne démarre pas**: Vérifiez les variables d'environnement dans `.env`
 3. **Erreurs d'API Shopify**: Vérifiez que vos clés et tokens sont corrects et que votre compte Shopify est actif
-4. **Dépendances manquantes**: Reconstruisez les conteneurs avec `docker-compose build --no-cache`
+4. **Erreurs d'API Claude**: Vérifiez votre clé API Claude et votre abonnement Claude Pro
+5. **Dépendances manquantes**: Reconstruisez les conteneurs avec `docker-compose build --no-cache`
 
 ## Contact et support
 
