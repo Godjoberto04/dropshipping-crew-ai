@@ -430,3 +430,14 @@ Notre plan d'implémentation combine l'intégration de composants existants avec
 
 ### Suivi des performances
 Un tableau de bord de suivi des KPIs sera mis en place dès le début du projet pour mesurer l'évolution des performances. Des revues mensuelles permettront d'ajuster les priorités de développement en fonction des résultats obtenus, avec une évaluation complète prévue après 6 mois d'utilisation.
+
+## Annexes techniques
+
+Les annexes techniques présentent des exemples d'implémentation détaillés pour certains composants clés du système. Ces exemples sont fournis pour illustrer les approches techniques envisagées et faciliter le développement.
+
+Dans cette section, nous présentons:
+1. Un modèle de scoring multicritères pour l'évaluation des produits
+2. L'intégration de PyTrends pour l'analyse des tendances
+3. Une intégration CrewAI pour le système Data Analyzer
+
+Des détails d'implémentation additionnels seront fournis dans des documents techniques séparés pendant les différentes phases du projet.
