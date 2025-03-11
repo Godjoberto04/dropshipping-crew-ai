@@ -110,6 +110,29 @@ services:
     volumes:
       - ./services/website-builder:/app
 
+  content-generator:
+    build:
+      context: ./services/content-generator
+    container_name: ${PROJECT_NAME}-content-generator
+    depends_on:
+      - postgres
+      - redis
+      - api
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - API_BASE_URL=http://api:8000
+      - AGENT_ID=content-generator
+      - AGENT_VERSION=0.1.0
+      - POLL_INTERVAL=5
+      - DEFAULT_LANGUAGE=fr
+      - DEFAULT_TONE=persuasive
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - ./services/content-generator:/app
+      - ./logs:/app/logs
+
 networks:
   backend:
   frontend:
