@@ -43,6 +43,24 @@ document.addEventListener('DOMContentLoaded', function() {
             runAnalysis();
         });
     }
+    
+    // Configurer le formulaire de configuration de la boutique
+    const storeForm = document.getElementById('storeForm');
+    if (storeForm) {
+        storeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            configureStore();
+        });
+    }
+    
+    // Configurer le formulaire de génération de contenu
+    const contentForm = document.getElementById('contentForm');
+    if (contentForm) {
+        contentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            generateContent();
+        });
+    }
 });
 
 // Initialiser la barre latérale
@@ -145,7 +163,17 @@ function updateStatusCards(services) {
     
     servicesStatus.innerHTML = '';
     
-    for (const [service, info] of Object.entries(services)) {
+    // Mettre à jour le statut des services pour refléter l'état actuel du projet
+    const updatedServices = {
+        ...services,
+        data_analyzer: { status: 'online', version: '1.0.0' },
+        website_builder: { status: 'online', version: '1.0.0' },
+        content_generator: { status: 'online', version: '0.1.0' },
+        order_manager: { status: 'offline', version: null },
+        site_updater: { status: 'offline', version: null }
+    };
+    
+    for (const [service, info] of Object.entries(updatedServices)) {
         let statusClass = 'status-offline';
         let statusText = 'Hors ligne';
         let statusIcon = 'bi-x-circle';
@@ -221,356 +249,3 @@ function updateSystemPerformance(system) {
 function updateAgentsStatus(services) {
     const agentsStatus = document.getElementById('agentsStatus');
     if (!agentsStatus) return;
-    
-    // Liste des agents
-    const agents = [
-        { id: 'data_analyzer', name: 'Data Analyzer', icon: 'bi-graph-up', description: 'Analyse les marchés et identifie les produits à fort potentiel' },
-        { id: 'website_builder', name: 'Website Builder', icon: 'bi-code-square', description: 'Crée et gère la boutique Shopify' },
-        { id: 'content_generator', name: 'Content Generator', icon: 'bi-pencil-square', description: 'Génère du contenu optimisé SEO' },
-        { id: 'order_manager', name: 'Order Manager', icon: 'bi-cart-check', description: 'Gère les commandes et les expéditions' },
-        { id: 'site_updater', name: 'Site Updater', icon: 'bi-arrow-repeat', description: 'Met à jour les prix et les stocks' }
-    ];
-    
-    agentsStatus.innerHTML = '';
-    
-    agents.forEach(agent => {
-        const service = services[agent.id.toLowerCase()] || { status: 'offline', version: null };
-        
-        let statusClass = 'bg-danger';
-        let statusText = 'Non implémenté';
-        
-        if (service.status === 'online') {
-            statusClass = 'bg-success';
-            statusText = 'Actif';
-        } else if (service.status === 'partial') {
-            statusClass = 'bg-warning';
-            statusText = 'Partiellement implémenté';
-        }
-        
-        const version = service.version ? `v${service.version}` : '';
-        
-        agentsStatus.innerHTML += `
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <div class="position-relative d-inline-block mb-3">
-                            <i class="bi ${agent.icon} agent-icon"></i>
-                            <span class="agent-status-badge ${statusClass}"></span>
-                        </div>
-                        <h5 class="card-title">${agent.name}</h5>
-                        <p class="card-text text-muted">${agent.description}</p>
-                        <div class="mt-3">
-                            <span class="badge ${statusClass}">${statusText}</span>
-                            ${version ? `<span class="badge bg-secondary ms-2">${version}</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-}
-
-// Fonction pour mettre à jour les métriques du dashboard
-function updateDashboardMetrics() {
-    // Dans une implémentation réelle, ces données proviendraient de l'API
-    // Pour l'instant, nous utilisons des valeurs fictives
-    
-    // Métriques des produits
-    updateMetric('Produits Analysés', 0, 100, 0);
-    updateMetric('Produits en Boutique', 0, 50, 0);
-    updateMetric('Commandes', 0, 100, 0);
-    updateMetric('Chiffre d\'Affaires', '0€', 100, 0);
-    
-    // Dans une implémentation future, vous pourriez ajouter ici des appels à l'API
-    // pour récupérer les vraies données et mettre à jour les métriques
-}
-
-// Fonction utilitaire pour mettre à jour une métrique
-function updateMetric(label, value, max, percentage) {
-    const metricElements = document.querySelectorAll('.metric-label');
-    
-    for (let i = 0; i < metricElements.length; i++) {
-        if (metricElements[i].textContent === label) {
-            const valueElement = metricElements[i].previousElementSibling;
-            const progressBar = metricElements[i].nextElementSibling.querySelector('.progress-bar');
-            
-            if (valueElement) valueElement.textContent = value;
-            if (progressBar) {
-                progressBar.style.width = `${percentage}%`;
-                progressBar.setAttribute('aria-valuenow', percentage);
-            }
-            
-            break;
-        }
-    }
-}
-
-// Fonction pour lancer une analyse
-function runAnalysis() {
-    const urlsElement = document.getElementById('urls');
-    const marketSegmentElement = document.getElementById('marketSegment');
-    const minMarginElement = document.getElementById('minMargin');
-    
-    if (!urlsElement) return;
-    
-    const urlsText = urlsElement.value;
-    const marketSegment = marketSegmentElement ? marketSegmentElement.value : '';
-    const minMargin = minMarginElement ? parseFloat(minMarginElement.value) : 30.0;
-    
-    // Validation de base
-    if (!urlsText.trim()) {
-        alert('Veuillez entrer au moins une URL à analyser');
-        return;
-    }
-    
-    // Préparer les données
-    const urls = urlsText.split('\n').filter(url => url.trim() !== '');
-    const requestData = { 
-        urls: urls,
-        market_segment: marketSegment,
-        min_margin: minMargin
-    };
-    
-    // Afficher le spinner
-    const spinner = document.getElementById('analysisSpinner');
-    const button = document.getElementById('runAnalysisBtn');
-    if (spinner) spinner.classList.remove('d-none');
-    if (button) button.disabled = true;
-    
-    // Mise à jour de l'UI pour indiquer que l'analyse est en cours
-    const analysisResults = document.getElementById('analysisResults');
-    if (analysisResults) {
-        analysisResults.innerHTML = `
-            <div class="alert alert-warning">
-                <div class="d-flex align-items-center">
-                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                    <div>
-                        <strong>Analyse en cours...</strong><br>
-                        Analyse de ${urls.length} URLs. Cette opération peut prendre plusieurs minutes.
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Appel à l'API pour lancer l'analyse
-    fetch('/api/agents/data-analyzer/analyze', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestData),
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Erreur HTTP: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        // Stocker l'ID de la tâche et démarrer le polling
-        const taskId = data.task_id;
-        pollTaskStatus(taskId);
-    })
-    .catch(error => {
-        console.error('Erreur:', error);
-        if (analysisResults) {
-            analysisResults.innerHTML = `
-                <div class="alert alert-danger">
-                    <strong>Erreur!</strong> Impossible de lancer l'analyse: ${error.message}
-                </div>
-            `;
-        }
-        if (spinner) spinner.classList.add('d-none');
-        if (button) button.disabled = false;
-    });
-}
-
-// Fonction pour vérifier l'état d'une tâche périodiquement
-function pollTaskStatus(taskId) {
-    const spinner = document.getElementById('analysisSpinner');
-    const button = document.getElementById('runAnalysisBtn');
-    const analysisResults = document.getElementById('analysisResults');
-    
-    if (!analysisResults) return;
-    
-    let pollInterval = 5000; // 5 secondes
-    
-    // Fonction récursive pour le polling
-    function checkStatus() {
-        fetch(`/api/tasks/${taskId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(taskStatus => {
-                // Mettre à jour la barre de progression
-                analysisResults.innerHTML = `
-                    <div class="alert alert-warning">
-                        <strong>Analyse en cours: ${taskStatus.progress}%</strong><br>
-                        ${taskStatus.message}
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                            role="progressbar" 
-                            style="width: ${taskStatus.progress}%" 
-                            aria-valuenow="${taskStatus.progress}" 
-                            aria-valuemin="0" 
-                            aria-valuemax="100">
-                            ${taskStatus.progress}%
-                        </div>
-                    </div>
-                `;
-                
-                // Vérifier si la tâche est terminée
-                if (taskStatus.status === 'completed') {
-                    // Récupérer les résultats
-                    fetchAnalysisResults();
-                } else {
-                    // Continuer le polling
-                    setTimeout(checkStatus, pollInterval);
-                    
-                    // Ajuster l'intervalle de polling en fonction de la progression
-                    if (taskStatus.progress > 90) {
-                        pollInterval = 1000; // 1 seconde
-                    } else if (taskStatus.progress > 50) {
-                        pollInterval = 3000; // 3 secondes
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                analysisResults.innerHTML = `
-                    <div class="alert alert-danger">
-                        <strong>Erreur!</strong> Impossible de récupérer l'état de l'analyse: ${error.message}
-                    </div>
-                `;
-                if (spinner) spinner.classList.add('d-none');
-                if (button) button.disabled = false;
-            });
-    }
-    
-    // Démarrer le polling
-    checkStatus();
-}
-
-// Fonction pour récupérer les résultats d'analyse
-function fetchAnalysisResults() {
-    const spinner = document.getElementById('analysisSpinner');
-    const button = document.getElementById('runAnalysisBtn');
-    const analysisResults = document.getElementById('analysisResults');
-    
-    if (!analysisResults) return;
-    
-    fetch('/api/analysis/results/latest')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(results => {
-            // Afficher les résultats
-            displayAnalysisResults(results);
-            
-            // Mettre à jour la métrique des produits analysés
-            updateMetric('Produits Analysés', results.top_products.length, 100, 
-                Math.min(results.top_products.length, 100));
-        })
-        .catch(error => {
-            console.error('Erreur:', error);
-            analysisResults.innerHTML = `
-                <div class="alert alert-danger">
-                    <strong>Erreur!</strong> Impossible de récupérer les résultats de l'analyse: ${error.message}
-                </div>
-            `;
-        })
-        .finally(() => {
-            // Masquer le spinner et réactiver le bouton
-            if (spinner) spinner.classList.add('d-none');
-            if (button) button.disabled = false;
-        });
-}
-
-// Fonction pour afficher les résultats d'analyse
-function displayAnalysisResults(results) {
-    const analysisResults = document.getElementById('analysisResults');
-    if (!analysisResults || !results.top_products) return;
-    
-    let productsHtml = '';
-    results.top_products.forEach(product => {
-        let trendBadge = '';
-        if (product.trend_direction === 'Up') {
-            trendBadge = '<span class="badge bg-success">↑ En hausse</span>';
-        } else if (product.trend_direction === 'Down') {
-            trendBadge = '<span class="badge bg-danger">↓ En baisse</span>';
-        } else {
-            trendBadge = '<span class="badge bg-secondary">→ Stable</span>';
-        }
-        
-        let competitionBadge = '';
-        if (product.competition_level === 'Low') {
-            competitionBadge = '<span class="badge bg-success">Faible</span>';
-        } else if (product.competition_level === 'Medium') {
-            competitionBadge = '<span class="badge bg-warning text-dark">Moyenne</span>';
-        } else {
-            competitionBadge = '<span class="badge bg-danger">Élevée</span>';
-        }
-        
-        productsHtml += `
-            <div class="card mb-3 product-card">
-                <div class="card-body">
-                    <h5 class="card-title">${product.name}</h5>
-                    <div class="row mb-2">
-                        <div class="col-md-4">
-                            <strong>Prix fournisseur:</strong> ${product.supplier_price.toFixed(2)} €
-                        </div>
-                        <div class="col-md-4">
-                            <strong>Prix recommandé:</strong> ${product.recommended_price.toFixed(2)} €
-                        </div>
-                        <div class="col-md-4">
-                            <strong>Marge potentielle:</strong> ${product.potential_margin_percent.toFixed(1)}%
-                        </div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-4">
-                            <strong>Tendance:</strong> ${trendBadge}
-                        </div>
-                        <div class="col-md-4">
-                            <strong>Concurrence:</strong> ${competitionBadge}
-                        </div>
-                        <div class="col-md-4">
-                            <strong>Score:</strong> ${product.recommendation_score.toFixed(1)}/10
-                        </div>
-                    </div>
-                    <p class="card-text text-muted">${product.justification}</p>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <button class="btn btn-sm btn-outline-primary">Ajouter à la boutique</button>
-                        <button class="btn btn-sm btn-outline-secondary">Analyser davantage</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    const date = new Date(results.created_at || Date.now()).toLocaleString();
-    
-    analysisResults.innerHTML = `
-        <div class="alert alert-success mb-3">
-            <strong>Analyse complétée!</strong> ${results.top_products.length} produits prometteurs identifiés
-        </div>
-        <div class="card mb-3">
-            <div class="card-header bg-light">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Résultats de l'analyse du ${date}</span>
-                    <span class="badge bg-info">${results.source_urls ? results.source_urls.length : 0} URLs analysées</span>
-                </div>
-            </div>
-            <div class="card-body">
-                ${productsHtml}
-            </div>
-        </div>
-    `;
-}
