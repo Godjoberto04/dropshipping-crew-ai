@@ -7,6 +7,10 @@
     --danger-color: #e63946;
     --light-color: #f8f9fa;
     --dark-color: #212529;
+    
+    /* Nouvelles couleurs pour les nouveaux composants */
+    --content-generator-color: #70AD47;
+    --orchestration-color: #9a67ea;
 }
 
 body {
@@ -49,6 +53,7 @@ body {
     border-radius: 0;
     margin-bottom: 5px;
     transition: all 0.2s;
+    padding: 8px 16px;
 }
 
 .nav-link:hover, .nav-link.active {
@@ -62,6 +67,7 @@ body {
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     transition: all 0.3s ease;
+    margin-bottom: 1rem;
 }
 
 .card:hover {
@@ -130,9 +136,129 @@ body {
     height: 20px;
 }
 
+/* Styles spécifiques pour les différents agents */
+.data-analyzer-icon {
+    color: var(--primary-color);
+}
+
+.website-builder-icon {
+    color: var(--secondary-color);
+}
+
+.content-generator-icon {
+    color: var(--content-generator-color);
+}
+
+.order-manager-icon {
+    color: var(--warning-color);
+}
+
+.site-updater-icon {
+    color: var(--info-color);
+}
+
+/* Styles pour les sections d'orchestration */
+.diagram-container {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.workflow-container {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 20px;
+    background-color: #fff;
+}
+
+.workflow-step {
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Styles améliorés pour les formulaires */
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(67, 97, 238, 0.25);
+}
+
+.form-control-color {
+    height: 38px;
+}
+
+/* Styles pour le tableau de progression */
+.progress-table {
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.progress-table tr {
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-radius: 8px;
+}
+
+.progress-table td {
+    padding: 12px 15px;
+}
+
+.progress-table tr td:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.progress-table tr td:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
 .toggle-sidebar {
     margin-right: 10px;
     cursor: pointer;
+}
+
+/* Styles pour l'aperçu de contenu */
+.content-preview {
+    max-height: 400px;
+    overflow-y: auto;
+    background-color: #fff;
+    line-height: 1.6;
+}
+
+/* Styles pour les onglets de contenu */
+.nav-tabs .nav-link {
+    border: none;
+    color: #6c757d;
+    border-radius: 0;
+    padding: 8px 16px;
+}
+
+.nav-tabs .nav-link.active {
+    font-weight: bold;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    background-color: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: rgba(67, 97, 238, 0.05);
+    border-left: none;
+}
+
+/* Styles pour les cartes de progression */
+.progress-card {
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.progress-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
 @media (max-width: 768px) {
@@ -184,4 +310,121 @@ body {
 
 .section.active {
     display: block;
+}
+
+/* Styles pour la visualisation des workflows */
+.workflow-diagram {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+    position: relative;
+}
+
+.workflow-node {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+.workflow-node.data-analyzer {
+    background-color: var(--primary-color);
+}
+
+.workflow-node.content-generator {
+    background-color: var(--content-generator-color);
+}
+
+.workflow-node.website-builder {
+    background-color: var(--secondary-color);
+}
+
+.workflow-node.future-node {
+    background-color: var(--warning-color);
+}
+
+.workflow-node i {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.workflow-node span {
+    font-size: 12px;
+    text-align: center;
+}
+
+.workflow-arrow {
+    position: absolute;
+    height: 2px;
+    background-color: #ccc;
+    top: 40px;
+    z-index: 0;
+}
+
+.workflow-arrow::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid #ccc;
+}
+
+/* Amélioration des icônes et badges */
+.feature-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    background-color: rgba(67, 97, 238, 0.1);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 15px;
+}
+
+.feature-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border-radius: 20px;
+    padding: 5px 10px;
+}
+
+/* Animation de chargement pour les spinners */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+/* Styles pour la visualisation des métriques */
+.metric-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 15px;
+}
+
+.metric-icon {
+    position: absolute;
+    bottom: -15px;
+    right: -15px;
+    font-size: 80px;
+    opacity: 0.1;
+    color: var(--primary-color);
 }
