@@ -192,3 +192,121 @@ Pour éviter de partir de zéro et accélérer le développement, nous proposons
 | [Sales Forecasting Models](https://github.com/topics/sales-forecasting) | Prédiction des ventes | Modèles déjà entraînés |
 | [Trend Prediction](https://github.com/topics/trend-analysis) | Analyse de tendances | Algorithmes optimisés |
 | [Seasonal Forecasting](https://github.com/topics/seasonal-forecasting) | Prédiction saisonnière | Intégration des facteurs saisonniers |
+
+## Architecture technique proposée
+
+L'architecture proposée combine les nouvelles fonctionnalités avec les composants communautaires dans un système modulaire et extensible.
+
+### Architecture globale
+
+```
+DataAnalyzer/
+├── core/                      # Noyau du système
+│   ├── analyzer.py            # Point d'entrée principal
+│   ├── config.py              # Configuration centralisée
+│   └── interfaces.py          # Interfaces standardisées
+│
+├── data_sources/              # Sources de données
+│   ├── trends/                # Module Google Trends (PyTrends)
+│   ├── marketplaces/          # Scrapers de marketplaces
+│   │   ├── amazon.py
+│   │   ├── aliexpress.py
+│   │   └── etsy.py
+│   ├── seo/                   # Données SEO (SEMrush/Ahrefs)
+│   └── social/                # Analyse des réseaux sociaux
+│
+├── models/                    # Modèles prédictifs
+│   ├── scoring/               # Système de scoring
+│   │   ├── multicriteria.py
+│   │   └── weights.py
+│   ├── forecasting/           # Prévisions
+│   │   ├── time_series.py
+│   │   ├── margins.py
+│   │   └── seasonal.py
+│   └── anomalies/             # Détection d'anomalies
+│
+├── context/                   # Contextualisation
+│   ├── personas.py            # Profils d'acheteurs
+│   ├── geo_analyzer.py        # Analyse géographique
+│   ├── calendar.py            # Calendrier saisonnier
+│   └── complementary.py       # Produits complémentaires
+│
+├── validation/                # Validation et feedback
+│   ├── performance.py         # Suivi des performances
+│   ├── feedback.py            # Système de rétroaction
+│   ├── ab_testing.py          # Tests A/B automatisés
+│   └── confidence.py          # Indice de confiance
+│
+├── reporting/                 # Reporting et visualisation
+│   ├── reports.py             # Générateur de rapports
+│   ├── visualizations.py      # Visualisations
+│   └── alerts.py              # Système d'alertes
+│
+└── integrations/              # Intégrations CrewAI
+    ├── agent.py               # Définition de l'agent
+    ├── tools.py               # Outils pour CrewAI
+    └── tasks.py               # Tâches standard
+```
+
+### Exemple d'intégration avec CrewAI
+
+```python
+from crewai import Agent, Task, Crew
+from integrations.tools import (
+    TrendsAnalyzerTool, 
+    ProductScorerTool,
+    MarketScraperTool,
+    ForecastingTool
+)
+
+# Création de l'agent Data Analyzer avec les outils intégrés
+data_analyzer = Agent(
+    role="Data Analyzer Expert",
+    goal="Identify the most profitable dropshipping opportunities with high confidence",
+    backstory="""You are an expert in e-commerce data analysis with years of 
+    experience in identifying profitable product opportunities. Your analyses 
+    have helped numerous dropshipping businesses succeed.""",
+    verbose=True,
+    tools=[
+        TrendsAnalyzerTool(),
+        ProductScorerTool(),
+        MarketScraperTool(),
+        ForecastingTool()
+    ]
+)
+
+# Définition des tâches
+analyze_market_task = Task(
+    description="""
+    Analyze the current market trends in the {niche} niche.
+    Identify the top 5 trending product categories and their growth potential.
+    """,
+    agent=data_analyzer,
+    expected_output="A market analysis report with top trending categories"
+)
+
+evaluate_product_task = Task(
+    description="""
+    Evaluate the dropshipping potential of {product_name}.
+    Consider market trends, competition, margins, shipping complexity, and seasonality.
+    Provide a comprehensive analysis with a confidence score.
+    """,
+    agent=data_analyzer,
+    expected_output="A detailed product evaluation report with recommendation"
+)
+
+# Création de l'équipage (crew)
+dropshipping_crew = Crew(
+    agents=[data_analyzer, product_sourcer, content_creator],
+    tasks=[analyze_market_task, evaluate_product_task, create_listing_task],
+    verbose=True
+)
+
+# Exécution du processus
+result = dropshipping_crew.kickoff(
+    inputs={
+        "niche": "eco-friendly kitchen gadgets",
+        "product_name": "Silicone Food Storage Bags"
+    }
+)
+```
