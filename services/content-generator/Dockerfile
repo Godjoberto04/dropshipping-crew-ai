@@ -1,33 +1,27 @@
-# Utiliser une image Python officielle comme base
-FROM python:3.11-slim
+FROM python:3.10-slim
 
-# Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers de dépendances et les installer
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copier les fichiers requirements
 COPY requirements.txt .
+
+# Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copier les fichiers de l'application
+# Copier le code source
 COPY . .
 
-# Créer les répertoires nécessaires s'ils n'existent pas
-RUN mkdir -p data
-RUN mkdir -p logs
+# Créer les répertoires nécessaires
+RUN mkdir -p /app/logs /app/data
 
-# Définir les variables d'environnement par défaut
-# Ces valeurs peuvent être surchargées lors du démarrage du conteneur
-ENV CLAUDE_API_KEY=""
-ENV API_BASE_URL="http://api:8000"
-ENV AGENT_ID="content-generator"
-ENV AGENT_VERSION="0.1.0"
-ENV POLL_INTERVAL=5
-ENV DEFAULT_LANGUAGE="fr"
-ENV DEFAULT_TONE="persuasive"
+# Permissions
+RUN chmod +x main.py
 
-# Exposer le port si nécessaire pour des requêtes HTTP directes
-# (Commenté car généralement les agents communiquent via l'API centrale)
-# EXPOSE 8000
-
-# Commande pour exécuter l'application
+# Commande par défaut
 CMD ["python", "main.py"]
