@@ -244,8 +244,3 @@ function updateSystemPerformance(system) {
         diskBar.textContent = `${system.disk_usage.toFixed(1)}%`;
     }
 }
-
-// Fonction pour mettre à jour le statut des agents
-function updateAgentsStatus(services) {
-    const agentsStatus = document.getElementById('agentsStatus');
-    if (!agentsStatus) return;
