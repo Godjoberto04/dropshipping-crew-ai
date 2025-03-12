@@ -1,0 +1,1 @@
+# Package tests pour l'agent Content Generator
