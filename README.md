@@ -101,10 +101,21 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 │   │   │   ├── __init__.py
 │   │   │   ├── api_client.py
 │   │   │   └── claude_client.py
-│   │   └── integrations/
+│   │   ├── integrations/
+│   │   │   ├── __init__.py
+│   │   │   ├── data_analyzer.py
+│   │   │   └── shopify.py
+│   │   └── tests/   ✨ NOUVEAU ✨
 │   │       ├── __init__.py
-│   │       ├── data_analyzer.py
-│   │       └── shopify.py
+│   │       ├── test_api_client.py
+│   │       ├── test_claude_client.py
+│   │       ├── test_config.py
+│   │       ├── test_main.py
+│   │       ├── test_data_analyzer_integration.py
+│   │       ├── test_shopify_integration.py
+│   │       ├── test_product_description.py
+│   │       ├── test_product_templates.py
+│   │       └── test_seo_optimizer.py
 │   ├── api/
 │   │   ├── Dockerfile
 │   │   ├── requirements.txt
@@ -129,6 +140,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 ## Changements récents
 
 ### Mars 2025
+- **NOUVEAU** 🔥 : Suite complète de tests unitaires pour l'agent Content Generator (intégrations, client API, templates, etc.)
 - **NOUVEAU** 🔥 : Implémentation complète de l'agent Content Generator avec capacité de génération de descriptions de produits optimisées SEO
 - **NOUVEAU** 🔥 : Support pour plusieurs niches (mode, électronique, maison, beauté) avec templates spécialisés
 - **NOUVEAU** 🔥 : Plan d'amélioration de l'API pour l'orchestration des workflows entre agents
@@ -271,10 +283,33 @@ curl -X POST "http://votre-serveur:8000/agents/content-generator/action" \
   }'
 ```
 
+## Tests unitaires
+
+Le projet dispose maintenant d'une suite complète de tests unitaires pour le service Content Generator. Pour exécuter les tests :
+
+```bash
+# Se placer dans le répertoire du service
+cd services/content-generator
+
+# Exécuter tous les tests
+python -m unittest discover -s tests
+
+# Exécuter un test spécifique
+python -m unittest tests.test_api_client
+```
+
+Les modules testés comprennent :
+- Client API pour l'interaction avec l'API centrale
+- Client Claude pour la génération de contenu
+- Intégrations avec Data Analyzer et Shopify
+- Générateur de descriptions produit
+- Templates spécifiques par niche
+- Optimiseur SEO
+
 ## Prochaines étapes
 
 1. **Amélioration de l'agent Data Analyzer**
-   - Définition d'un plan d'amélioration détaillé
+   - Implémentation du plan d'amélioration détaillé (voir [plan complet](docs/plan-data-analyzer-amelioration.md))
    - Intégration des composants communautaires pour l'analyse de tendances et scoring
 
 2. **Amélioration de l'agent Website Builder**
@@ -303,10 +338,12 @@ Pour plus de détails, consultez les documents suivants :
 - [Plan d'amélioration de l'API pour l'orchestration](docs/plan-amelioration-api-orchestration.md)
 - [Stratégie d'intégration des ressources communautaires](docs/community-resources-integration.md)
 - [Plan d'amélioration de l'agent Website Builder](docs/plan-website-builder-amelioration.md)
-- [Plan du Content Generator](docs/plan-content-generator.md) ⚠️ **Nouveau!**
-- [Guide de l'agent Content Generator](docs/content-generator-guide.md) ⚠️ **Nouveau!**
+- [Plan d'amélioration de l'agent Data Analyzer](docs/plan-data-analyzer-amelioration.md)
+- [Plan du Content Generator](docs/plan-content-generator.md)
+- [Guide de l'agent Content Generator](docs/content-generator-guide.md)
 - [Guide de l'agent Website Builder](docs/website-builder-guide.md)
 - [Documentation API](docs/api-doc-suite.md)
+- [Tests de l'agent Content Generator](docs/tests-content-generator.md)
 
 ## Coûts du projet
 
@@ -325,6 +362,7 @@ Si vous rencontrez des problèmes lors du déploiement :
 3. **Erreurs d'API Shopify**: Vérifiez que vos clés et tokens sont corrects et que votre compte Shopify est actif
 4. **Erreurs d'API Claude**: Vérifiez votre clé API Claude et votre abonnement Claude Pro
 5. **Dépendances manquantes**: Reconstruisez les conteneurs avec `docker-compose build --no-cache`
+6. **Tests unitaires qui échouent**: Vérifiez les dépendances et la configuration dans `services/content-generator/tests`
 
 ## Contact et support
 
@@ -340,6 +378,6 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 Pour la prochaine session, voici ce qu'il reste à implémenter ou à mettre à jour :
 
-1. Créer le document `docs/plan-data-analyzer-amelioration.md` qui est référencé dans le code mais manquant dans le référentiel
-2. Générer des exemples de tests unitaires pour l'agent Content Generator
-3. Mettre à jour le fichier docker-compose.yml pour inclure les configurations de l'agent Content Generator
+1. Commencer le développement du quatrième agent (Order Manager)
+2. Étendre l'agent Content Generator avec des fonctionnalités pour les articles de blog
+3. Implémenter les améliorations de l'API pour l'orchestration des workflows
