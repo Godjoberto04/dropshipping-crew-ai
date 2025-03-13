@@ -98,3 +98,117 @@ class AdvancedProductScorer(ProductScorer):
                 ]
             }
         }
+    
+    def _load_niche_optimizations(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Charge les optimisations spécifiques par niche.
+        
+        Returns:
+            Dictionnaire d'optimisations par niche
+        """
+        # Implémentation basique des optimisations par niche
+        return {
+            'fashion': {
+                'weights': {
+                    'trend': 0.15,           # La tendance est plus importante
+                    'profitability': 0.20    # La profitabilité est légèrement réduite
+                },
+                'criteria_adjustments': {
+                    'seasonality': 1.2,      # Importance accrue de la saisonnalité
+                    'social_mentions': 1.5   # Importance accrue des mentions sociales
+                }
+            },
+            'electronics': {
+                'weights': {
+                    'operational': 0.20,     # Les aspects opérationnels sont plus importants
+                    'profitability': 0.20    # La profitabilité est légèrement réduite
+                },
+                'criteria_adjustments': {
+                    'return_rate': 1.5,      # Importance accrue du taux de retour
+                    'supplier_reliability': 1.4  # Importance accrue de la fiabilité fournisseur
+                }
+            },
+            'home_decor': {
+                'weights': {
+                    'operational': 0.20,     # Les aspects opérationnels sont plus importants
+                    'competition': 0.15      # La concurrence est moins importante
+                },
+                'criteria_adjustments': {
+                    'shipping_complexity': 1.5,  # Importance accrue de la complexité d'expédition
+                    'seasonality': 0.8       # Importance réduite de la saisonnalité
+                }
+            },
+            'beauty': {
+                'weights': {
+                    'market_potential': 0.35, # Potentiel de marché plus important
+                    'trend': 0.15            # La tendance est plus importante
+                },
+                'criteria_adjustments': {
+                    'social_mentions': 1.8,   # Importance fortement accrue des mentions sociales
+                    'margin': 1.2            # Importance accrue de la marge
+                }
+            },
+            'fitness': {
+                'weights': {
+                    'market_potential': 0.35, # Potentiel de marché plus important
+                    'competition': 0.15      # La concurrence est moins importante
+                },
+                'criteria_adjustments': {
+                    'seasonality': 1.3,      # Importance accrue de la saisonnalité
+                    'growth_rate': 1.2       # Importance accrue du taux de croissance
+                }
+            }
+        }
+    
+    def register_data_source(self, source_name: str, source_instance: Any) -> None:
+        """
+        Enregistre une source de données à utiliser pour le scoring.
+        
+        Args:
+            source_name: Nom de la source
+            source_instance: Instance de la source de données
+        """
+        self.data_sources[source_name] = source_instance
+        logger.info(f"Source de données '{source_name}' enregistrée")
+    
+    def gather_data(self, product_id: str, product_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Collecte toutes les données nécessaires auprès des différentes sources.
+        
+        Args:
+            product_id: Identifiant du produit
+            product_info: Informations de base sur le produit (optionnel)
+            
+        Returns:
+            Dictionnaire avec toutes les données collectées
+        """
+        data = {'product_id': product_id}
+        
+        if product_info:
+            data['basic_info'] = product_info
+        
+        # Collecte des données auprès de chaque source enregistrée
+        for source_name, source in self.data_sources.items():
+            try:
+                if hasattr(source, 'analyze') and callable(source.analyze):
+                    # Pour les analyseurs génériques
+                    if source_name == 'trends' and product_info and 'keywords' in product_info:
+                        # Cas spécial pour l'analyseur de tendances
+                        data[source_name] = source.analyze(product_info.get('keywords', []))
+                    elif source_name == 'marketplace':
+                        # Cas spécial pour l'analyseur de marketplace
+                        data[source_name] = source.analyze(product_id)
+                    else:
+                        # Cas général
+                        data[source_name] = source.analyze(product_id)
+                elif hasattr(source, f'analyze_{source_name}') and callable(getattr(source, f'analyze_{source_name}')):
+                    # Pour les méthodes spécifiques
+                    method = getattr(source, f'analyze_{source_name}')
+                    data[source_name] = method(product_id)
+                else:
+                    logger.warning(f"Source '{source_name}' n'a pas de méthode d'analyse adaptée")
+            except Exception as e:
+                logger.warning(f"Erreur lors de la collecte des données depuis '{source_name}': {str(e)}")
+                data[source_name] = {"error": str(e)}
+        
+        return data
