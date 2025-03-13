@@ -348,3 +348,134 @@ class AliExpressScraper(MarketplaceScraper):
             simulated_products = [p for p in simulated_products if p["price"] <= max_price]
         
         return simulated_products
+    
+    def get_product_details(self, product_id: str, include_specifications: bool = True) -> Dict[str, Any]:
+        """
+        Récupère les détails d'un produit AliExpress spécifique.
+        
+        Args:
+            product_id: Identifiant du produit
+            include_specifications: Inclure les spécifications détaillées
+            
+        Returns:
+            Détails complets du produit
+        """
+        logger.info(f"Récupération des détails du produit AliExpress {product_id}")
+        
+        # Simulation d'un délai réseau
+        time.sleep(0.7)
+        
+        # Données simulées pour les variations
+        variations = [
+            {
+                "property": "Couleur",
+                "options": [
+                    {"name": "Rouge", "price": 9.99, "image_url": "https://example.com/red.jpg"},
+                    {"name": "Noir", "price": 9.99, "image_url": "https://example.com/black.jpg"},
+                    {"name": "Bleu", "price": 10.99, "image_url": "https://example.com/blue.jpg"}
+                ]
+            },
+            {
+                "property": "Taille",
+                "options": [
+                    {"name": "S", "price": 9.99},
+                    {"name": "M", "price": 9.99},
+                    {"name": "L", "price": 11.99},
+                    {"name": "XL", "price": 12.99}
+                ]
+            }
+        ]
+        
+        # Données simulées pour les spécifications
+        specifications = {}
+        if include_specifications:
+            specifications = {
+                "Marque": "Exemple",
+                "Matériau": "Polyester, Coton",
+                "Origine": "CN(Origine)",
+                "Style": "Casual",
+                "Saison": "Toutes Saisons",
+                "Numéro de modèle": "ABC123",
+                "Taille": "S, M, L, XL",
+                "Couleur": "Rouge, Noir, Bleu"
+            }
+        
+        # Données simulées pour le produit
+        return {
+            "id": product_id,
+            "title": f"Produit AliExpress Détaillé {product_id}",
+            "store": {
+                "id": f"ST{product_id[:4]}",
+                "name": "Boutique AliExpress Exemple",
+                "rating": 97.8,
+                "followers": 5642,
+                "positive_feedback": 98.2,
+                "years_active": 3
+            },
+            "price": 9.99,
+            "original_price": 13.99,
+            "currency": "EUR",
+            "discount": 29,
+            "rating": 4.7,
+            "review_count": 842,
+            "orders_count": 1563,
+            "image_urls": [
+                f"https://example.com/aliexpress_product_{product_id}_1.jpg",
+                f"https://example.com/aliexpress_product_{product_id}_2.jpg",
+                f"https://example.com/aliexpress_product_{product_id}_3.jpg"
+            ],
+            "description": "Description détaillée du produit AliExpress. Cette description inclurait généralement de nombreuses images et explications.",
+            "variations": variations,
+            "specifications": specifications,
+            "shipping_options": [
+                {
+                    "method": "AliExpress Standard Shipping",
+                    "cost": 2.99,
+                    "delivery_time": "15-30 jours",
+                    "tracking": True
+                },
+                {
+                    "method": "AliExpress Premium Shipping",
+                    "cost": 8.99,
+                    "delivery_time": "10-15 jours",
+                    "tracking": True
+                }
+            ],
+            "available_quantity": 999,
+            "url": f"https://www.aliexpress.com/item/{product_id}.html"
+        }
+    
+    def get_product_reviews(self, product_id: str, limit: int = 10, sort_by: str = "recent") -> List[Dict[str, Any]]:
+        """
+        Récupère les avis sur un produit AliExpress spécifique.
+        
+        Args:
+            product_id: Identifiant du produit
+            limit: Nombre maximum d'avis à récupérer
+            sort_by: Critère de tri (recent, helpful)
+            
+        Returns:
+            Liste des avis sur le produit
+        """
+        logger.info(f"Récupération des avis du produit AliExpress {product_id} (limite: {limit})")
+        
+        # Simulation d'un délai réseau
+        time.sleep(0.5)
+        
+        # Countries for simulation
+        countries = ["FR", "DE", "US", "UK", "ES", "IT", "CA", "AU", "RU", "BR"]
+        
+        # Données simulées
+        return [
+            {
+                "id": f"ALIREV{i}_{product_id}",
+                "content": f"Avis {i+1} pour le produit AliExpress. {'Bon produit, livraison rapide.' if i % 2 == 0 else 'Qualité correcte pour le prix.'} {'Je recommande.' if i % 3 == 0 else ''}",
+                "rating": 5 if i % 3 == 0 else (4 if i % 3 == 1 else 3),
+                "author": f"Acheteur{i+1}",
+                "country": countries[i % len(countries)],
+                "date": f"2023-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}",
+                "helpful_votes": i,
+                "photos": [f"https://example.com/review_photo_{i+1}_{j+1}.jpg" for j in range(i % 3)]
+            }
+            for i in range(limit)
+        ]
