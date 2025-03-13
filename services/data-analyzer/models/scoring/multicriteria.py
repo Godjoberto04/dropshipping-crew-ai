@@ -26,6 +26,14 @@ from models.scoring.criteria import (
     # Tendances
     score_trend_consistency, score_seasonality, score_social_mentions
 )
+from models.scoring.multicriteria_core import (
+    apply_niche_optimizations,
+    calculate_category_score,
+    calculate_confidence,
+    identify_strengths_weaknesses,
+    generate_score_explanation,
+    get_recommendation
+)
 
 logger = get_logger("advanced_scorer")
 
@@ -243,3 +251,158 @@ class AdvancedProductScorer(ProductScorer):
                 data[source_name] = {"error": str(e)}
         
         return data
+    
+    def score_product(self, product_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Calcule le score d'un produit selon les différents critères.
+        
+        Args:
+            product_data: Données du produit à évaluer
+            
+        Returns:
+            Dictionnaire contenant le score global et les scores détaillés
+        """
+        product_id = product_data.get('id', 'unknown')
+        product_name = product_data.get('name', 'Produit inconnu')
+        niche = product_data.get('niche', '').lower()
+        
+        logger.info(f"Évaluation du produit: {product_name} (ID: {product_id})")
+        
+        # Collecter les données si pas déjà incluses
+        if not any(k in product_data for k in ['trends', 'marketplace', 'seo', 'social']):
+            data = self.gather_data(product_id, product_data)
+        else:
+            data = product_data
+        
+        # Appliquer les optimisations spécifiques à la niche si disponibles
+        adjusted_config = apply_niche_optimizations(self.config, niche, self.niche_optimizations)
+        
+        # Initialiser les scores par catégorie
+        category_scores = {}
+        
+        # Calculer le score pour chaque catégorie principale
+        for category, criteria in adjusted_config['criteria'].items():
+            category_scores[category] = calculate_category_score(
+                category, 
+                criteria, 
+                data, 
+                self.criterion_functions
+            )
+        
+        # Calculer le score global pondéré
+        overall_score = sum(
+            category_scores[category] * adjusted_config['weights'][category]
+            for category in category_scores
+        )
+        
+        # Arrondir à une décimale
+        overall_score = round(overall_score, 1)
+        
+        # Déterminer la recommandation
+        recommendation = get_recommendation(overall_score, adjusted_config['thresholds'])
+        
+        # Calculer le score de confiance
+        confidence_score = calculate_confidence(
+            data, 
+            category_scores, 
+            adjusted_config['data_requirements'].get('critical_criteria', [])
+        )
+        
+        # Identifier les points forts et points faibles
+        strengths, weaknesses = identify_strengths_weaknesses(category_scores, adjusted_config)
+        
+        # Générer l'explication détaillée
+        explanation = generate_score_explanation(
+            overall_score,
+            category_scores,
+            strengths,
+            weaknesses,
+            confidence_score
+        )
+        
+        # Préparer le résultat
+        result = {
+            'product_id': product_id,
+            'product_name': product_name,
+            'overall_score': overall_score,
+            'category_scores': category_scores,
+            'recommendation': recommendation,
+            'confidence': confidence_score,
+            'strengths': strengths,
+            'weaknesses': weaknesses,
+            'explanation': explanation,
+            'niche': niche,
+            'niche_optimized': niche in self.niche_optimizations,
+            'data_completeness': explanation.get('confidence_statement'),
+            'scoring_timestamp': time.time()
+        }
+        
+        return result
+    
+    def explain_score(self, score_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Génère une explication textuelle du score.
+        
+        Args:
+            score_result: Résultat du scoring retourné par score_product
+            
+        Returns:
+            Dictionnaire contenant des explications structurées du scoring
+        """
+        # Vérifier si l'explication est déjà incluse dans le résultat
+        if 'explanation' in score_result:
+            return score_result['explanation']
+        
+        # Sinon, générer une nouvelle explication
+        overall_score = score_result.get('overall_score', 0)
+        category_scores = score_result.get('category_scores', {})
+        strengths = score_result.get('strengths', [])
+        weaknesses = score_result.get('weaknesses', [])
+        confidence = score_result.get('confidence', 0)
+        
+        return generate_score_explanation(
+            overall_score,
+            category_scores,
+            strengths,
+            weaknesses,
+            confidence
+        )
+    
+    def batch_score_products(self, products_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Calcule les scores pour plusieurs produits.
+        
+        Args:
+            products_data: Liste des données de produits à évaluer
+            
+        Returns:
+            Liste des résultats de scoring
+        """
+        results = []
+        
+        for product_data in products_data:
+            try:
+                score_result = self.score_product(product_data)
+                results.append(score_result)
+            except Exception as e:
+                logger.error(f"Erreur lors du scoring du produit {product_data.get('name', 'inconnu')}: {str(e)}")
+                # Ajouter un résultat d'erreur pour maintenir l'ordre
+                results.append({
+                    "error": str(e),
+                    "product_id": product_data.get("id"),
+                    "product_name": product_data.get("name", "inconnu")
+                })
+        
+        return results
+    
+    def _apply_niche_optimizations(self, niche: str) -> Dict[str, Any]:
+        """
+        Applique les optimisations spécifiques à une niche.
+        
+        Args:
+            niche: Niche du produit
+            
+        Returns:
+            Configuration ajustée selon la niche
+        """
+        return apply_niche_optimizations(self.config, niche, self.niche_optimizations)
