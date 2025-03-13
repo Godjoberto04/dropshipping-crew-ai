@@ -14,6 +14,7 @@ from typing import Dict, Any, List, Optional, Union
 from config import settings, get_logger
 from tools.api_client import ApiClient
 from data_sources.trends.trends_analyzer import TrendsAnalyzer
+from models.scoring.multicriteria import AdvancedProductScorer
 
 logger = get_logger("data_analyzer_main")
 
@@ -30,6 +31,12 @@ class DataAnalyzerAgent:
         # Initialisation des sources de données
         self.trends_analyzer = TrendsAnalyzer()
         
+        # Initialisation du système de scoring
+        self.product_scorer = AdvancedProductScorer()
+        
+        # Enregistrement des sources de données dans le scorer
+        self.product_scorer.register_data_source('trends', self.trends_analyzer)
+        
         # État de l'agent
         self.is_running = False
         
@@ -43,7 +50,9 @@ class DataAnalyzerAgent:
             "analyze_product",
             "compare_products",
             "get_rising_products",
-            "calculate_product_potential"
+            "calculate_product_potential",
+            "score_product",         # Nouvelle capacité
+            "batch_score_products"   # Nouvelle capacité
         ]
         
         # Enregistrement
@@ -88,6 +97,10 @@ class DataAnalyzerAgent:
                 result = await self.handle_get_rising_products(task, execution_id)
             elif action == "calculate_product_potential":
                 result = await self.handle_calculate_product_potential(task, execution_id)
+            elif action == "score_product":                              # Nouvelle action
+                result = await self.handle_score_product(task, execution_id)
+            elif action == "batch_score_products":                      # Nouvelle action
+                result = await self.handle_batch_score_products(task, execution_id)
             else:
                 raise ValueError(f"Action non reconnue: {action}")
             
@@ -349,7 +362,7 @@ class DataAnalyzerAgent:
     
     async def handle_calculate_product_potential(self, task: Dict[str, Any], execution_id: str) -> Dict[str, Any]:
         """
-        Calcule le potentiel global d'un produit en combinant plusieurs sources de données.
+        Calcule le potentiel global d'un produit en utilisant le système de scoring multicritères.
         
         Args:
             task: Tâche à traiter
@@ -372,61 +385,31 @@ class DataAnalyzerAgent:
         logger.info(f"Calcul du potentiel pour: {product_name}")
         await self.api_client.update_task_status(task_id, "processing", progress=30)
         
-        # Analyse de tendance via Google Trends
-        trend_analysis = await asyncio.to_thread(
-            self.trends_analyzer.analyze_product,
-            product_name=product_name
+        # Préparation des données du produit
+        product_info = {
+            "id": product_data.get("id", f"prod_{int(time.time())}"),
+            "name": product_name,
+            "niche": product_data.get("niche", ""),
+            "keywords": product_data.get("keywords", [product_name])
+        }
+        
+        # Fusion des données supplémentaires
+        if "market_data" in product_data:
+            product_info["market"] = product_data["market_data"]
+            
+        if "supplier_data" in product_data:
+            product_info["supplier"] = product_data["supplier_data"]
+            
+        if "marketplace_data" in product_data:
+            product_info["marketplace"] = product_data["marketplace_data"]
+        
+        # Utilisation du système de scoring multicritères
+        score_result = await asyncio.to_thread(
+            self.product_scorer.score_product,
+            product_info
         )
         
         await self.api_client.update_task_status(task_id, "processing", progress=70)
-        
-        # Calcul simplifié du potentiel
-        trend_score = trend_analysis.get("overall_trend_score", 50)
-        is_trending = trend_analysis.get("is_trending", False)
-        is_seasonal = trend_analysis.get("seasonality", {}).get("is_seasonal", False)
-        
-        # Facteurs supplémentaires (simplifiés pour cette version)
-        market_factors = {
-            "market_size": product_data.get("market_size", 50),
-            "competition": product_data.get("competition", 50),
-            "profit_margin": product_data.get("profit_margin", 20),
-            "shipping_complexity": product_data.get("shipping_complexity", 50)
-        }
-        
-        # Calcul du score global (simpliste pour cette implémentation)
-        overall_potential = (
-            trend_score * 0.4 +
-            market_factors["market_size"] * 0.2 +
-            (100 - market_factors["competition"]) * 0.2 +
-            market_factors["profit_margin"] * 0.1 +
-            (100 - market_factors["shipping_complexity"]) * 0.1
-        )
-        
-        # Classification du potentiel
-        if overall_potential >= settings.SCORING_THRESHOLDS["high_potential"]:
-            potential_category = "high"
-            recommendation = "Recommandé comme produit prioritaire"
-        elif overall_potential >= settings.SCORING_THRESHOLDS["medium_potential"]:
-            potential_category = "medium"
-            recommendation = "Potentiel intéressant, à considérer"
-        elif overall_potential >= settings.SCORING_THRESHOLDS["low_potential"]:
-            potential_category = "low"
-            recommendation = "Potentiel limité, à considérer avec prudence"
-        else:
-            potential_category = "very_low"
-            recommendation = "Non recommandé à moins de facteurs spécifiques favorables"
-        
-        # Préparation du résultat
-        result = {
-            "product_name": product_name,
-            "overall_potential": overall_potential,
-            "potential_category": potential_category,
-            "recommendation": recommendation,
-            "trend_score": trend_score,
-            "is_trending": is_trending,
-            "is_seasonal": is_seasonal,
-            "market_factors": market_factors
-        }
         
         # Sauvegarde des résultats
         await self.api_client.save_analysis_result(
@@ -434,11 +417,103 @@ class DataAnalyzerAgent:
             data={
                 "execution_id": execution_id,
                 "product_name": product_name,
-                "result": result
+                "result": score_result
             }
         )
         
-        return result
+        return score_result
+    
+    async def handle_score_product(self, task: Dict[str, Any], execution_id: str) -> Dict[str, Any]:
+        """
+        Gère l'analyse multicritères d'un produit.
+        
+        Args:
+            task: Tâche à traiter
+            execution_id: Identifiant d'exécution pour le suivi
+            
+        Returns:
+            Résultat du scoring
+        """
+        params = task.get("params", {})
+        task_id = task.get("id", "unknown")
+        
+        # Extraction des paramètres
+        product_data = params.get("product_data", {})
+        
+        # Validation des paramètres
+        if not product_data or not product_data.get("name"):
+            raise ValueError("Les données du produit sont requises (avec au moins un nom)")
+        
+        logger.info(f"Scoring du produit: {product_data.get('name')}")
+        await self.api_client.update_task_status(task_id, "processing", progress=30)
+        
+        # Utilisation du système de scoring multicritères
+        score_result = await asyncio.to_thread(
+            self.product_scorer.score_product,
+            product_data
+        )
+        
+        await self.api_client.update_task_status(task_id, "processing", progress=70)
+        
+        # Sauvegarde des résultats
+        await self.api_client.save_analysis_result(
+            analysis_type="product_scoring",
+            data={
+                "execution_id": execution_id,
+                "product_name": product_data.get("name", ""),
+                "result": score_result
+            }
+        )
+        
+        return score_result
+    
+    async def handle_batch_score_products(self, task: Dict[str, Any], execution_id: str) -> Dict[str, Any]:
+        """
+        Gère l'analyse multicritères de plusieurs produits.
+        
+        Args:
+            task: Tâche à traiter
+            execution_id: Identifiant d'exécution pour le suivi
+            
+        Returns:
+            Résultats du scoring pour tous les produits
+        """
+        params = task.get("params", {})
+        task_id = task.get("id", "unknown")
+        
+        # Extraction des paramètres
+        products_data = params.get("products_data", [])
+        
+        # Validation des paramètres
+        if not products_data:
+            raise ValueError("La liste des produits est requise")
+        
+        logger.info(f"Scoring par lots de {len(products_data)} produits")
+        await self.api_client.update_task_status(task_id, "processing", progress=20)
+        
+        # Utilisation du système de scoring multicritères en lot
+        results = await asyncio.to_thread(
+            self.product_scorer.batch_score_products,
+            products_data
+        )
+        
+        await self.api_client.update_task_status(task_id, "processing", progress=80)
+        
+        # Sauvegarde des résultats
+        await self.api_client.save_analysis_result(
+            analysis_type="batch_product_scoring",
+            data={
+                "execution_id": execution_id,
+                "product_count": len(products_data),
+                "results": results
+            }
+        )
+        
+        return {
+            "products_scored": len(results),
+            "results": results,
+            "timestamp": time.time()
+        }
     
     async def poll_tasks(self):
         """Boucle principale de l'agent qui vérifie les tâches à traiter."""
