@@ -12,7 +12,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 - **IP**: 163.172.160.102
 - **API**: http://163.172.160.102/api/
 - **Dashboard**: http://163.172.160.102/
-- **Statut actuel**: Agents Data Analyzer et Website Builder opérationnels, Agent Content Generator implémenté, Order Manager en développement
+- **Statut actuel**: Agents Data Analyzer, Website Builder et Content Generator opérationnels, Agent Order Manager en développement avec intégration AliExpress finalisée
 
 ## Architecture du système
 
@@ -37,11 +37,13 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
    - Tests unitaires complets
    - Limitations actuelles: Actuellement limité aux descriptions de produits
 
-4. **Order Manager** ⏳ (en développement sur branche feature/order-manager)
+4. **Order Manager** ⚙️ (développement avancé)
    - Structure de base en place
    - Modèles de données principaux implémentés
    - API REST configurée
+   - Intégration complète avec AliExpress
    - Intégration partielle avec Shopify
+   - Tests unitaires pour l'intégration AliExpress
 
 5. **Site Updater** 🔜 (planifié)
    - Actualise les prix selon la concurrence
@@ -135,6 +137,47 @@ Le projet utilise une API centralisée qui comprend:
 │   │       ├── test_product_description.py
 │   │       ├── test_product_templates.py
 │   │       └── test_seo_optimizer.py
+│   ├── order-manager/    ✨ NOUVEAU ✨
+│   │   ├── Dockerfile
+│   │   ├── requirements.txt
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── app.py
+│   │   │   ├── routers/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── health.py
+│   │   │   │   ├── orders.py
+│   │   │   │   └── supplier_orders.py
+│   │   │   └── utils.py
+│   │   ├── integrations/
+│   │   │   ├── __init__.py
+│   │   │   ├── shopify/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── client.py
+│   │   │   └── suppliers/
+│   │   │       ├── __init__.py
+│   │   │       ├── base.py
+│   │   │       ├── communicator.py
+│   │   │       └── aliexpress.py  ✨ NOUVEAU ✨
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── order.py
+│   │   │   ├── supplier_order.py
+│   │   │   └── shipping.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── order_service.py
+│   │   │   ├── order_service_suppliers.py
+│   │   │   └── order_service_delivery.py
+│   │   ├── storage/
+│   │   │   ├── __init__.py
+│   │   │   └── order_repository.py
+│   │   ├── notifications/
+│   │   │   ├── __init__.py
+│   │   │   └── notification_manager.py
+│   │   └── tests/    ✨ NOUVEAU ✨
+│   │       ├── __init__.py
+│   │       └── test_aliexpress_supplier.py
 │   └── dashboard/
 │       ├── css/
 │       │   └── style.css
@@ -154,6 +197,8 @@ Le projet utilise une API centralisée qui comprend:
 ## Changements récents
 
 ### Mars 2025
+- **NOUVEAU** 🔥 : Implémentation complète de l'intégration AliExpress pour l'agent Order Manager avec tests unitaires
+- **NOUVEAU** 🔥 : Architecture modulaire pour l'intégration avec les fournisseurs dropshipping
 - **NOUVEAU** 🔥 : Suite complète de tests unitaires pour l'agent Content Generator (intégrations, client API, templates, etc.)
 - **NOUVEAU** 🔥 : Implémentation complète de l'agent Content Generator avec capacité de génération de descriptions de produits optimisées SEO
 - **NOUVEAU** 🔥 : Support pour plusieurs niches (mode, électronique, maison, beauté) avec templates spécialisés
@@ -299,6 +344,26 @@ curl -X POST "http://votre-serveur:8000/agents/content-generator/action" \
   }'
 ```
 
+### Agent Order Manager
+
+Pour gérer les commandes via l'API :
+
+```bash
+# Obtenir le statut d'une commande
+curl -X GET "http://votre-serveur:8000/agents/order-manager/orders/123456789" \
+  -H "Content-Type: application/json"
+
+# Rechercher des produits sur AliExpress
+curl -X POST "http://votre-serveur:8000/agents/order-manager/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "supplier": "aliexpress",
+    "query": "smartphone accessories",
+    "page": 1,
+    "limit": 20
+  }'
+```
+
 ## Tests unitaires
 
 Le projet dispose maintenant d'une suite complète de tests unitaires pour le service Content Generator et plusieurs autres composants. Pour exécuter les tests :
@@ -314,6 +379,16 @@ python -m unittest discover -s tests
 python -m unittest tests.test_api_client
 ```
 
+Pour les tests de l'agent Order Manager :
+
+```bash
+# Se placer dans le répertoire du service
+cd services/order-manager
+
+# Exécuter les tests
+python -m unittest tests.test_aliexpress_supplier
+```
+
 Les modules testés comprennent :
 - Client API pour l'interaction avec l'API centrale
 - Client Claude pour la génération de contenu
@@ -321,11 +396,12 @@ Les modules testés comprennent :
 - Générateur de descriptions produit
 - Templates spécifiques par niche
 - Optimiseur SEO
+- Intégration AliExpress
 
 ## Points d'amélioration identifiés
 
 1. **Uniformisation des approches de programmation**
-   - Disparité entre styles synchrone (Data Analyzer, Website Builder) et asynchrone (Content Generator)
+   - Disparité entre styles synchrone (Data Analyzer, Website Builder) et asynchrone (Content Generator, Order Manager)
    - Documenter les choix techniques ou uniformiser l'approche
 
 2. **Tests unitaires à compléter**
@@ -339,32 +415,38 @@ Les modules testés comprennent :
 
 ## Prochaines étapes
 
-1. **Amélioration de l'agent Data Analyzer**
+1. **Finalisation de l'agent Order Manager**
+   - Compléter l'intégration CJ Dropshipping pour diversifier les fournisseurs
+   - Développer le système de notification des clients
+   - Ajouter le suivi avancé des commandes et expéditions
+   - Améliorer la gestion des erreurs et le système de reprise automatique
+
+2. **Amélioration de l'agent Data Analyzer**
    - Implémentation du plan d'amélioration détaillé (voir [plan complet](docs/plan-data-analyzer-amelioration.md))
    - Intégration de PyTrends pour l'analyse de tendances Google
    - Développement du système de scoring multicritères pondéré
    - Ajout des mécanismes de validation et d'apprentissage
 
-2. **Amélioration de l'agent Website Builder**
+3. **Amélioration de l'agent Website Builder**
    - Implémentation du plan d'amélioration (voir [plan complet](docs/plan-website-builder-amelioration.md))
    - Génération intelligente de sites avec templates par niche
    - Optimisation SEO intégrée
    - Amélioration des éléments de conversion (CRO)
 
-3. **Extension de l'agent Content Generator** 
+4. **Extension de l'agent Content Generator** 
    - Phase 2 : Ajout des générateurs de pages catégories et articles de blog
    - Optimisation SEO avancée et adaptateurs de niche spécialisés
    - Intégration complète avec le système de workflows
-
-4. **Finalisation de l'agent Order Manager**
-   - Terminer l'intégration avec les fournisseurs
-   - Développer le système de notifications
-   - Compléter les tests unitaires
 
 5. **Amélioration de l'API pour l'orchestration**
    - Implémentation du moteur de workflows
    - Développement du système d'événements et déclencheurs
    - Extension du tableau de bord pour le monitoring des workflows
+   
+6. **Développement de l'agent Site Updater**
+   - Implémentation d'un système de surveillance des prix concurrents
+   - Automatisation des mises à jour de stocks et de prix
+   - Optimisation continue des pages produits basée sur l'analyse des performances
 
 ## Documentation
 
@@ -377,6 +459,7 @@ Pour plus de détails, consultez les documents suivants :
 - [Plan du Content Generator](docs/plan-content-generator.md)
 - [Guide de l'agent Content Generator](docs/content-generator-guide.md)
 - [Guide de l'agent Website Builder](docs/website-builder-guide.md)
+- [Guide de l'agent Order Manager](docs/order-manager-guide.md)
 - [Documentation API](docs/api-doc-suite.md)
 - [Tests de l'agent Content Generator](docs/tests-content-generator.md)
 
@@ -397,7 +480,8 @@ Si vous rencontrez des problèmes lors du déploiement :
 3. **Erreurs d'API Shopify**: Vérifiez que vos clés et tokens sont corrects et que votre compte Shopify est actif
 4. **Erreurs d'API Claude**: Vérifiez votre clé API Claude et votre abonnement Claude Pro
 5. **Dépendances manquantes**: Reconstruisez les conteneurs avec `docker-compose build --no-cache`
-6. **Tests unitaires qui échouent**: Vérifiez les dépendances et la configuration dans `services/content-generator/tests`
+6. **Tests unitaires qui échouent**: Vérifiez les dépendances et la configuration dans `services/content-generator/tests` ou `services/order-manager/tests`
+7. **Problème de connexion AliExpress**: Vérifiez les clés d'API et les secrets dans les variables d'environnement
 
 ## Contact et support
 
@@ -413,8 +497,12 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 Pour la prochaine session, voici ce qu'il reste à implémenter ou à mettre à jour :
 
-1. Finaliser l'agent Order Manager en cours de développement sur la branche feature/order-manager
+1. Finaliser le développement de l'agent Order Manager:
+   - Implémenter l'intégration avec CJ Dropshipping
+   - Ajouter les webhooks Shopify pour les notifications automatiques
+   - Compléter le système de gestion des livraisons
+
 2. Commencer la mise en œuvre du plan d'amélioration de l'agent Data Analyzer
 3. Étendre l'agent Content Generator pour les articles de blog
 4. Implémenter le moteur de workflow dans l'API d'orchestration
-5. Uniformiser les approches de programmation ou documenter les choix techniques
+5. Planifier l'architecture de l'agent Site Updater
