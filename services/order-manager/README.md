@@ -1,154 +1,208 @@
 # Agent Order Manager
 
-L'agent Order Manager est responsable de la gestion des commandes dans le système Dropshipping Crew AI. Il agit comme intermédiaire entre la boutique en ligne (Shopify) et les fournisseurs dropshipping (AliExpress, CJ Dropshipping, etc.).
+Module de gestion des commandes pour le système Dropshipping Crew AI.
 
-## Fonctionnalités
+## Description
 
-- Récupération automatique des nouvelles commandes depuis Shopify
-- Répartition des produits par fournisseur et création des commandes fournisseurs
-- Suivi des statuts des commandes fournisseurs
-- Mise à jour du statut des commandes principales
-- Notification des clients lors des changements de statut importants
-- API REST pour l'interaction avec les autres agents
+L'agent Order Manager est responsable de la gestion complète des commandes dans le système Dropshipping Crew AI. Il assure le suivi des commandes client, communique avec les fournisseurs dropshipping (AliExpress, CJ Dropshipping), et gère les informations de suivi des expéditions.
+
+## Fonctionnalités principales
+
+### 1. Gestion des commandes client
+- Récupération et traitement des commandes depuis Shopify
+- Suivi du statut des commandes
+- Envoi de notifications aux clients
+
+### 2. Intégration des fournisseurs
+- Communication avec les fournisseurs dropshipping (AliExpress, CJ Dropshipping)
+- Sélection automatique du meilleur fournisseur
+- Comparaison des prix, délais d'expédition et disponibilité
+
+### 3. Gestion des expéditions
+- Suivi des colis
+- Mise à jour du statut de livraison
+- Gestion des problèmes de livraison
 
 ## Architecture
 
-L'agent Order Manager est développé en Python et utilise les technologies suivantes :
+L'agent Order Manager est construit sur une architecture modulaire qui permet de facilement ajouter de nouveaux fournisseurs ou fonctionnalités:
 
-- **FastAPI** : Framework API RESTful
-- **SQLite** : Base de données pour le stockage des commandes
-- **Loguru** : Système de journalisation
+```
+OrderManager/
+├── api/                  # Interface API REST
+├── integrations/         # Intégrations externes
+│   ├── shopify/          # Intégration avec Shopify
+│   └── suppliers/        # Intégration avec les fournisseurs
+│       ├── aliexpress.py # Fournisseur AliExpress
+│       ├── cjdropshipping.py # Fournisseur CJ Dropshipping
+│       ├── communicator.py # Façade pour les fournisseurs
+│       └── supplier_selector.py # Sélection automatique
+├── models/               # Modèles de données
+├── notifications/        # Système de notifications
+├── services/             # Services métier
+├── storage/              # Gestion des données
+└── tests/                # Tests unitaires
+```
 
-L'architecture de l'agent est organisée en plusieurs modules :
+## Nouvelle fonctionnalité: Sélection automatique des fournisseurs
 
-- **models** : Modèles de données (Order, SupplierOrder, etc.)
-- **services** : Services métier (OrderService, etc.)
-- **storage** : Accès aux données (OrderRepository)
-- **integrations** : Intégration avec les systèmes externes (Shopify, fournisseurs)
-- **notifications** : Gestion des notifications client
-- **api** : API REST
+Cette fonctionnalité permet de sélectionner automatiquement le meilleur fournisseur pour chaque produit en fonction de différents critères comme le prix, le délai d'expédition, la disponibilité, etc.
+
+### Critères de sélection
+
+Le système utilise les critères suivants pour évaluer les fournisseurs:
+
+- **Prix du produit** (pondération: 35%)
+- **Coût d'expédition** (pondération: 20%)
+- **Délai de livraison** (pondération: 15%)
+- **Disponibilité en stock** (pondération: 10%)
+- **Notation du vendeur** (pondération: 10%)
+- **Fiabilité du fournisseur** (pondération: 10%)
+
+### Stratégies de sélection
+
+Plusieurs stratégies de sélection sont disponibles:
+
+- **auto**: Sélection basée sur tous les critères pondérés
+- **cheapest**: Sélection basée uniquement sur le prix total (produit + expédition)
+- **fastest**: Sélection basée uniquement sur le délai de livraison
+- **default**: Utilisation du fournisseur par défaut (configurable)
+
+### API de sélection
+
+L'API suivante est disponible pour la sélection des fournisseurs:
+
+#### Rechercher des produits chez tous les fournisseurs
+
+```
+POST /suppliers/search
+{
+  "query": "smartphone accessories",
+  "limit": 20,
+  "supplier": "aliexpress"  // Optionnel, pour chercher chez un fournisseur spécifique
+}
+```
+
+#### Sélectionner le meilleur fournisseur pour un produit
+
+```
+POST /suppliers/select
+{
+  "product_id": "123456789",
+  "variant_id": "VAR123",  // Optionnel
+  "strategy": "auto"  // "auto", "cheapest", "fastest" ou "default"
+}
+```
+
+#### Comparer les fournisseurs pour plusieurs produits
+
+```
+POST /suppliers/compare
+{
+  "products": [
+    {"product_id": "123456789", "variant_id": "VAR123"},
+    {"product_id": "987654321", "variant_id": "VAR456"}
+  ]
+}
+```
+
+#### Obtenir la liste des fournisseurs disponibles
+
+```
+GET /suppliers/suppliers
+```
 
 ## Installation
 
-### Prérequis
+1. Assurez-vous que les variables d'environnement suivantes sont configurées:
+   - `ALIEXPRESS_API_KEY`: Clé API pour AliExpress
+   - `CJ_DROPSHIPPING_API_KEY`: Clé API pour CJ Dropshipping
+   - `SHOPIFY_SHOP_URL`: URL de votre boutique Shopify
+   - `SHOPIFY_API_KEY`: Clé API Shopify
+   - `SHOPIFY_API_PASSWORD`: Mot de passe API Shopify
+   - `DEFAULT_SUPPLIER`: Fournisseur par défaut (optionnel, valeur par défaut: "aliexpress")
 
-- Python 3.9+
-- Docker (optionnel)
+2. Installer les dépendances:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### Installation avec pip
+3. Démarrer l'application:
+   ```bash
+   cd services/order-manager
+   python -m api.app
+   ```
 
-```bash
-# Cloner le dépôt
-git clone https://github.com/Godjoberto04/dropshipping-crew-ai.git
-cd dropshipping-crew-ai/services/order-manager
+## Tests
 
-# Créer un environnement virtuel
-python -m venv venv
-source venv/bin/activate  # Sur Windows : venv\Scripts\activate
-
-# Installer les dépendances
-pip install -r requirements.txt
-```
-
-### Installation avec Docker
-
-```bash
-# Cloner le dépôt
-git clone https://github.com/Godjoberto04/dropshipping-crew-ai.git
-cd dropshipping-crew-ai/services/order-manager
-
-# Construire l'image Docker
-docker build -t order-manager .
-```
-
-## Configuration
-
-Créez un fichier `.env` à la racine du projet avec les variables d'environnement suivantes :
+Pour exécuter les tests unitaires:
 
 ```bash
-# Configuration Shopify
-SHOPIFY_SHOP_URL=your-shop.myshopify.com
-SHOPIFY_API_KEY=your-api-key
-SHOPIFY_API_PASSWORD=your-api-password
-
-# Configuration des fournisseurs
-ALIEXPRESS_API_KEY=your-aliexpress-key
-CJ_DROPSHIPPING_API_KEY=your-cj-key
-
-# Configuration de l'API
-API_KEY=your-api-key
-
-# Divers
-ENVIRONMENT=development
-DB_PATH=./data/orders.db
-LOG_DIR=./logs
+cd services/order-manager
+python -m unittest discover -s tests
 ```
 
-## Utilisation
-
-### Démarrage du serveur
+Pour tester spécifiquement l'intégration des fournisseurs:
 
 ```bash
-# Avec Python
-uvicorn api.app:app --reload --host 0.0.0.0 --port 8000
-
-# Avec Docker
-docker run -p 8000:8000 --env-file .env order-manager
+python -m unittest tests.test_supplier_selector
+python -m unittest tests.test_supplier_communicator
 ```
 
-### Accès à l'API
+## Exemples d'utilisation
 
-L'API REST est accessible à l'adresse `http://localhost:8000`. La documentation Swagger est disponible à l'adresse `http://localhost:8000/docs`.
+### Traitement d'une commande avec sélection automatique des fournisseurs
 
-Exemples d'utilisation :
+```python
+from services import OrderServiceSuppliers
+from storage import OrderRepository
 
-```bash
-# Vérification de l'état de santé
-curl http://localhost:8000/health
+# Initialisation du service
+repository = OrderRepository("./data/orders.db")
+await repository.initialize()
+service = OrderServiceSuppliers(repository=repository)
 
-# Récupération des commandes
-curl -H "X-API-Key: your-api-key" http://localhost:8000/orders
+# Données de la commande
+order_data = {
+    "id": "123456789",
+    "shipping_address": {
+        "name": "John Doe",
+        "phone": "5551234567",
+        "address1": "123 Main St",
+        "city": "New York",
+        "province": "NY",
+        "zip": "10001",
+        "country_code": "US"
+    },
+    "line_items": [
+        {
+            "product_id": "PROD1",
+            "variant_id": "VAR1",
+            "quantity": 2
+        }
+    ]
+}
 
-# Récupération d'une commande par son identifiant
-curl -H "X-API-Key: your-api-key" http://localhost:8000/orders/123456789
+# Traitement de la commande avec sélection automatique des fournisseurs
+result = await service.process_supplier_order(order_data, strategy="auto")
+
+# Affichage du résultat
+if result["success"]:
+    print(f"Commande traitée avec succès. {len(result['orders'])} fournisseurs sélectionnés.")
+    for order in result["orders"]:
+        print(f"Fournisseur: {order['supplier']}, ID commande: {order['supplier_order_id']}")
+else:
+    print(f"Erreur: {result['error']}")
 ```
 
-## Développement
+## Ajout d'un nouveau fournisseur
 
-### Structure des fichiers
+Pour ajouter un nouveau fournisseur, suivez les étapes suivantes:
 
-```
-order-manager/
-├── api/                  # API REST
-│   ├── routers/          # Routeurs FastAPI
-│   ├── app.py            # Application FastAPI
-│   └── utils.py          # Utilitaires pour l'API
-├── integrations/         # Intégrations avec les systèmes externes
-│   ├── shopify/          # Intégration Shopify
-│   └── suppliers/        # Intégration avec les fournisseurs
-├── models/               # Modèles de données
-├── notifications/        # Gestion des notifications
-├── services/             # Services métier
-├── storage/              # Accès aux données
-├── Dockerfile            # Configuration Docker
-└── requirements.txt      # Dépendances Python
-```
+1. Créez une nouvelle classe dans `integrations/suppliers/` qui hérite de `SupplierInterface`
+2. Implémentez toutes les méthodes requises par l'interface
+3. Ajoutez le nouveau fournisseur à la classe `SupplierType` dans `models/__init__.py`
+4. Mettez à jour le communicateur pour prendre en charge le nouveau fournisseur
+5. Ajoutez des tests unitaires pour le nouveau fournisseur
 
-### Tests
-
-```bash
-pytest tests/
-```
-
-## Intégration avec les autres agents
-
-L'agent Order Manager est conçu pour interagir avec les autres agents du système Dropshipping Crew AI :
-
-- **Data Analyzer** : Fournit des informations sur les produits et les fournisseurs
-- **Website Builder** : Fournit des informations sur la boutique et les produits
-- **Content Generator** : Peut être utilisé pour générer des messages de notification personnalisés
-- **Marketing Manager** (à venir) : Utilisera les données des commandes pour optimiser les campagnes marketing
-
-## Licence
-
-Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+Consultez les fichiers `aliexpress.py` et `cjdropshipping.py` pour des exemples d'implémentation.
