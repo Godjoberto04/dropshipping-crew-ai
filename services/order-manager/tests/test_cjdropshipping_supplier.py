@@ -146,3 +146,133 @@ class TestCJDropshippingSupplier(unittest.TestCase):
         self.assertEqual(call_args['method'], 'GET')
         self.assertIn(self.supplier.ENDPOINT_GET_ORDER, call_args['url'])
         self.assertIn("orderId="+self.test_supplier_order_id, str(call_args))
+
+    @patch('aiohttp.ClientSession.request')
+    def test_get_tracking_info_success(self, mock_request):
+        """Test de récupération des informations de suivi réussi."""
+        # Configuration de la réponse simulée
+        tracking_number = "CJ12345678CN"
+        tracking_url = "https://global.cainiao.com/detail.htm?mailNo=CJ12345678CN"
+        logistics_name = "CJPacket"
+        
+        mock_response = AsyncMock(spec=ClientResponse)
+        mock_response.status = 200
+        mock_response.text = AsyncMock(return_value=json.dumps({
+            "code": 200,
+            "message": "success",
+            "data": {
+                "trackingNumber": tracking_number,
+                "trackingUrl": tracking_url,
+                "logisticsName": logistics_name
+            }
+        }))
+        mock_response.raise_for_status = AsyncMock()
+        
+        # Configuration du mock pour la requête HTTP
+        mock_request.return_value.__aenter__.return_value = mock_response
+        
+        # Exécution du test
+        result = asyncio.run(self.supplier.get_tracking_info(self.test_supplier_order_id))
+        
+        # Vérifications
+        self.assertTrue(result.success)
+        self.assertEqual(result.supplier_order_id, self.test_supplier_order_id)
+        self.assertEqual(result.tracking_number, tracking_number)
+        self.assertEqual(result.tracking_url, tracking_url)
+        self.assertEqual(result.shipping_company, logistics_name)
+        self.assertEqual(result.status, "shipped")
+        
+        # Vérification que la requête a été effectuée correctement
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args[1]
+        self.assertEqual(call_args['method'], 'GET')
+        self.assertIn(self.supplier.ENDPOINT_TRACKING_INFO, call_args['url'])
+        self.assertIn("orderId="+self.test_supplier_order_id, str(call_args))
+    
+    @patch('aiohttp.ClientSession.request')
+    def test_cancel_order_success(self, mock_request):
+        """Test d'annulation de commande réussi."""
+        # Configuration de la réponse simulée
+        mock_response = AsyncMock(spec=ClientResponse)
+        mock_response.status = 200
+        mock_response.text = AsyncMock(return_value=json.dumps({
+            "code": 200,
+            "message": "success",
+            "data": {
+                "orderId": self.test_supplier_order_id,
+                "status": "cancelled"
+            }
+        }))
+        mock_response.raise_for_status = AsyncMock()
+        
+        # Configuration du mock pour la requête HTTP
+        mock_request.return_value.__aenter__.return_value = mock_response
+        
+        # Exécution du test
+        result = asyncio.run(self.supplier.cancel_order(self.test_supplier_order_id, "Changed my mind"))
+        
+        # Vérifications
+        self.assertTrue(result.success)
+        self.assertEqual(result.supplier_order_id, self.test_supplier_order_id)
+        self.assertEqual(result.status, "cancelled")
+        
+        # Vérification que la requête a été effectuée correctement
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args[1]
+        self.assertEqual(call_args['method'], 'POST')
+        self.assertIn(self.supplier.ENDPOINT_CANCEL_ORDER, call_args['url'])
+        self.assertEqual(call_args['json']['remark'], "Changed my mind")
+    
+    @patch('aiohttp.ClientSession.request')
+    def test_search_products_success(self, mock_request):
+        """Test de recherche de produits réussi."""
+        # Configuration de la réponse simulée
+        mock_response = AsyncMock(spec=ClientResponse)
+        mock_response.status = 200
+        mock_response.text = AsyncMock(return_value=json.dumps({
+            "code": 200,
+            "message": "success",
+            "data": {
+                "total": 100,
+                "list": [
+                    {
+                        "pid": "12345",
+                        "productName": "Test Product",
+                        "productImage": "https://cjdropshipping.com/image.jpg",
+                        "productUrl": "https://cjdropshipping.com/product/12345",
+                        "variants": [
+                            {
+                                "vid": "V12345",
+                                "sellPrice": 19.99,
+                                "variantStock": 100
+                            }
+                        ]
+                    }
+                ]
+            }
+        }))
+        mock_response.raise_for_status = AsyncMock()
+        
+        # Configuration du mock pour la requête HTTP
+        mock_request.return_value.__aenter__.return_value = mock_response
+        
+        # Exécution du test
+        result = asyncio.run(self.supplier.search_products("test query", page=1, limit=20))
+        
+        # Vérifications
+        self.assertTrue(result["success"])
+        self.assertEqual(result["total"], 100)
+        self.assertEqual(len(result["products"]), 1)
+        self.assertEqual(result["products"][0]["id"], "12345")
+        self.assertEqual(result["products"][0]["title"], "Test Product")
+        self.assertEqual(result["products"][0]["price"], 19.99)
+        
+        # Vérification que la requête a été effectuée correctement
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args[1]
+        self.assertEqual(call_args['method'], 'POST')
+        self.assertIn(self.supplier.ENDPOINT_SEARCH_PRODUCTS, call_args['url'])
+        self.assertEqual(call_args['json']['productName'], "test query")
+
+if __name__ == '__main__':
+    unittest.main()
