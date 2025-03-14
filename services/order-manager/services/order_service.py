@@ -17,7 +17,7 @@ from models import Order, OrderStatus, SupplierOrder, SupplierType, ShippingInfo
 from storage import OrderRepository
 from integrations.shopify import ShopifyClient
 from integrations.suppliers import SupplierCommunicator
-from notifications import NotificationManager
+from notifications import NotificationManager, NotificationType
 
 # Import des méthodes externes
 from .order_service_suppliers import (
@@ -163,11 +163,41 @@ class OrderService:
                     logger.error(f"Échec de l'enregistrement de la commande {order.id}")
                     continue
                 
+                # Notification de réception de commande
+                await self._send_order_received_notification(order)
+                
                 # Traitement de la commande
                 await self._process_new_order(order)
                 
             except Exception as e:
                 logger.error(f"Erreur lors du traitement de la commande Shopify {shopify_order.get('id')}: {str(e)}")
+    
+    async def _send_order_received_notification(self, order: Order):
+        """
+        Envoie une notification de réception de commande au client.
+        
+        Args:
+            order: Commande reçue
+        """
+        try:
+            customer_name = f"{order.customer.get('first_name', '')} {order.customer.get('last_name', '')}".strip()
+            customer_email = order.customer.get('email')
+            
+            if not customer_email:
+                logger.warning(f"Impossible d'envoyer une notification pour la commande {order.id}: email client manquant")
+                return
+            
+            await self.notification_manager.notify_order_status(
+                order_id=order.id,
+                customer_email=customer_email,
+                customer_name=customer_name if customer_name else "Client",
+                status=NotificationType.ORDER_PLACED
+            )
+            
+            logger.info(f"Notification de réception envoyée pour la commande {order.id}")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de la notification de réception pour la commande {order.id}: {str(e)}")
     
     def _convert_shopify_to_order(self, shopify_order: Dict[str, Any]) -> Order:
         """
@@ -248,14 +278,72 @@ class OrderService:
             order.status = OrderStatus.PROCESSING
             await self.repository.update_order(order)
             
-            # Notification au client
-            await self.notification_manager.send_order_confirmation(order)
+            # Notification au client de confirmation de commande
+            await self._send_order_confirmed_notification(order)
             
         except Exception as e:
             logger.error(f"Erreur lors du traitement de la commande {order.id}: {str(e)}")
             order.status = OrderStatus.ERROR
             order.error_message = str(e)
             await self.repository.update_order(order)
+            
+            # Notification d'erreur aux administrateurs
+            await self._send_order_issue_notification(order, str(e))
+    
+    async def _send_order_confirmed_notification(self, order: Order):
+        """
+        Envoie une notification de confirmation de commande au client.
+        
+        Args:
+            order: Commande confirmée
+        """
+        try:
+            customer_name = f"{order.customer.get('first_name', '')} {order.customer.get('last_name', '')}".strip()
+            customer_email = order.customer.get('email')
+            
+            if not customer_email:
+                logger.warning(f"Impossible d'envoyer une notification pour la commande {order.id}: email client manquant")
+                return
+            
+            await self.notification_manager.notify_order_status(
+                order_id=order.id,
+                customer_email=customer_email,
+                customer_name=customer_name if customer_name else "Client",
+                status=NotificationType.ORDER_CONFIRMED
+            )
+            
+            logger.info(f"Notification de confirmation envoyée pour la commande {order.id}")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de la notification de confirmation pour la commande {order.id}: {str(e)}")
+    
+    async def _send_order_issue_notification(self, order: Order, issue_details: str):
+        """
+        Envoie une notification d'erreur de commande aux administrateurs.
+        
+        Args:
+            order: Commande en erreur
+            issue_details: Détails du problème
+        """
+        try:
+            customer_name = f"{order.customer.get('first_name', '')} {order.customer.get('last_name', '')}".strip()
+            
+            # Extraction des noms de produits concernés
+            product_names = [item.get('title', 'Produit inconnu') for item in order.line_items]
+            
+            # Notification aux administrateurs
+            await self.notification_manager.notify_stock_issue(
+                order_id=order.id,
+                customer_name=customer_name if customer_name else "Client",
+                product_names=product_names,
+                supplier="Multiple", # Générique car nous ne savons pas quel fournisseur a causé le problème
+                issue_details=issue_details
+            )
+            
+            logger.info(f"Notification d'erreur envoyée aux administrateurs pour la commande {order.id}")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de la notification d'erreur pour la commande {order.id}: {str(e)}")
     
     async def _update_original_order_status(self, order_id: str):
         """
@@ -287,19 +375,142 @@ class OrderService:
         if all_delivered and order.status != OrderStatus.DELIVERED:
             order.status = OrderStatus.DELIVERED
             status_changed = True
+            
+            # Notification de livraison
+            await self._send_delivery_notification(order)
+            
         elif all_shipped and order.status != OrderStatus.SHIPPED and not all_delivered:
             order.status = OrderStatus.SHIPPED
             status_changed = True
+            
+            # Notification d'expédition
+            shipping_info = self._compile_shipping_info(supplier_orders)
+            await self._send_shipping_notification(order, shipping_info)
         
         if status_changed:
             # Mise à jour de la commande principale
             order.updated_at = datetime.now().isoformat()
             await self.repository.update_order(order)
+    
+    async def _send_shipping_notification(self, order: Order, shipping_info: Dict[str, Any]):
+        """
+        Envoie une notification d'expédition au client.
+        
+        Args:
+            order: Commande expédiée
+            shipping_info: Informations d'expédition
+        """
+        try:
+            customer_name = f"{order.customer.get('first_name', '')} {order.customer.get('last_name', '')}".strip()
+            customer_email = order.customer.get('email')
             
-            # Notification au client si la commande vient d'être expédiée
-            if order.status == OrderStatus.SHIPPED:
-                shipping_info = self._compile_shipping_info(supplier_orders)
-                await self.notification_manager.send_shipping_confirmation(order, shipping_info)
+            if not customer_email:
+                logger.warning(f"Impossible d'envoyer une notification d'expédition pour la commande {order.id}: email client manquant")
+                return
+            
+            # Préparation des données pour la notification
+            tracking_info = shipping_info.get('tracking_info', [])
+            if tracking_info:
+                # Si plusieurs numéros de suivi, utiliser le premier pour la notification
+                first_tracking = tracking_info[0]
+                additional_data = {
+                    "tracking_number": first_tracking.get('tracking_number', 'N/A'),
+                    "carrier": first_tracking.get('carrier', 'N/A'),
+                    "tracking_url": first_tracking.get('tracking_url', '#'),
+                    "ship_date": first_tracking.get('ship_date', datetime.now().strftime("%Y-%m-%d")),
+                    "delivery_date": first_tracking.get('estimated_delivery', 'À déterminer')
+                }
+                
+                # Si plusieurs numéros de suivi, les ajouter en complément
+                if len(tracking_info) > 1:
+                    additional_tracking = "\n\nInformations de suivi supplémentaires:\n"
+                    for i, track in enumerate(tracking_info[1:], 2):
+                        additional_tracking += f"Colis {i}: {track.get('tracking_number', 'N/A')} - {track.get('carrier', 'N/A')} - {track.get('tracking_url', '#')}\n"
+                    additional_data["additional_tracking"] = additional_tracking
+            else:
+                additional_data = {
+                    "tracking_number": "N/A",
+                    "carrier": "N/A",
+                    "tracking_url": "#",
+                    "ship_date": datetime.now().strftime("%Y-%m-%d"),
+                    "delivery_date": "À déterminer"
+                }
+            
+            await self.notification_manager.notify_order_status(
+                order_id=order.id,
+                customer_email=customer_email,
+                customer_name=customer_name if customer_name else "Client",
+                status=NotificationType.SHIPPED,
+                additional_data=additional_data
+            )
+            
+            logger.info(f"Notification d'expédition envoyée pour la commande {order.id}")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de la notification d'expédition pour la commande {order.id}: {str(e)}")
+    
+    async def _send_delivery_notification(self, order: Order):
+        """
+        Envoie une notification de livraison au client.
+        
+        Args:
+            order: Commande livrée
+        """
+        try:
+            customer_name = f"{order.customer.get('first_name', '')} {order.customer.get('last_name', '')}".strip()
+            customer_email = order.customer.get('email')
+            
+            if not customer_email:
+                logger.warning(f"Impossible d'envoyer une notification de livraison pour la commande {order.id}: email client manquant")
+                return
+            
+            await self.notification_manager.notify_order_status(
+                order_id=order.id,
+                customer_email=customer_email,
+                customer_name=customer_name if customer_name else "Client",
+                status=NotificationType.DELIVERED
+            )
+            
+            logger.info(f"Notification de livraison envoyée pour la commande {order.id}")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de la notification de livraison pour la commande {order.id}: {str(e)}")
+    
+    async def _send_delivery_update_notification(self, order: Order, tracking_info: Dict[str, Any]):
+        """
+        Envoie une notification de mise à jour de livraison au client.
+        
+        Args:
+            order: Commande en cours de livraison
+            tracking_info: Informations de suivi mises à jour
+        """
+        try:
+            customer_name = f"{order.customer.get('first_name', '')} {order.customer.get('last_name', '')}".strip()
+            customer_email = order.customer.get('email')
+            
+            if not customer_email:
+                logger.warning(f"Impossible d'envoyer une notification de mise à jour pour la commande {order.id}: email client manquant")
+                return
+            
+            additional_data = {
+                "status": tracking_info.get('status', 'En transit'),
+                "location": tracking_info.get('location', 'Inconnu'),
+                "tracking_url": tracking_info.get('tracking_url', '#'),
+                "delivery_date": tracking_info.get('estimated_delivery', 'À déterminer')
+            }
+            
+            await self.notification_manager.notify_order_status(
+                order_id=order.id,
+                customer_email=customer_email,
+                customer_name=customer_name if customer_name else "Client",
+                status=NotificationType.DELIVERY_UPDATE,
+                additional_data=additional_data
+            )
+            
+            logger.info(f"Notification de mise à jour de livraison envoyée pour la commande {order.id}")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de la notification de mise à jour pour la commande {order.id}: {str(e)}")
     
     # Méthodes publiques pour les API
     
@@ -470,9 +681,19 @@ class OrderService:
         
         order_update_success = await self.repository.update_order(order)
         
-        # Notification au client
+        # Notification au client d'annulation
         try:
-            await self.notification_manager.send_cancellation_notification(order, reason)
+            customer_name = f"{order.customer.get('first_name', '')} {order.customer.get('last_name', '')}".strip()
+            customer_email = order.customer.get('email')
+            
+            if customer_email:
+                await self.notification_manager.notify_order_status(
+                    order_id=order.id,
+                    customer_email=customer_email,
+                    customer_name=customer_name if customer_name else "Client",
+                    status=NotificationType.ORDER_ISSUE,
+                    additional_data={"issue_details": f"Votre commande a été annulée. Raison: {reason}"}
+                )
         except Exception as e:
             logger.error(f"Erreur lors de l'envoi de la notification d'annulation: {str(e)}")
         
