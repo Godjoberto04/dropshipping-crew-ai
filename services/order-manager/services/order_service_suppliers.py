@@ -1,270 +1,558 @@
 #!/usr/bin/env python3
 """
-Fonctionnalités de gestion des fournisseurs pour l'agent Order Manager
+Service de gestion des commandes - Module fournisseurs
 Fait partie du projet Dropshipping Crew AI
-
-Ce module contient les méthodes de OrderService liées aux interactions avec les fournisseurs.
 """
 
-import uuid
-from datetime import datetime
-from typing import Dict, List, Any, Optional
+import os
+from typing import Dict, Any, List, Optional, Tuple
 from loguru import logger
 
-from models import Order, OrderStatus, SupplierOrder, SupplierType
+from models import SupplierType
+from storage import OrderRepository
+from integrations.suppliers.communicator import SupplierCommunicator
+from integrations.suppliers.supplier_selector import SupplierSelector
 
-async def _group_products_by_supplier(self, order: Order) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Regroupe les produits de la commande par fournisseur.
-    
-    Args:
-        order: Commande à traiter
-        
-    Returns:
-        Dictionnaire avec le type de fournisseur comme clé et la liste des produits comme valeur
-    """
-    supplier_groups = {}
-    
-    for item in order.line_items:
-        # Récupération des métadonnées du produit pour identifier le fournisseur
-        product_id = item.get("product_id")
-        variant_id = item.get("variant_id")
-        
-        if not product_id or not variant_id:
-            logger.warning(f"Produit sans identifiant trouvé dans la commande {order.id}")
-            continue
-        
-        # Récupération des métadonnées du produit depuis Shopify
-        product_data = await self.shopify_client.get_product_metafields(product_id, variant_id)
-        
-        # Détermination du fournisseur
-        supplier_type = self._determine_supplier_type(product_data)
-        
-        if not supplier_type:
-            logger.warning(f"Impossible de déterminer le fournisseur pour le produit {product_id} de la commande {order.id}")
-            continue
-        
-        # Ajout du produit au groupe du fournisseur
-        if supplier_type not in supplier_groups:
-            supplier_groups[supplier_type] = []
-        
-        supplier_groups[supplier_type].append({
-            **item,
-            "supplier_data": self._extract_supplier_data(product_data, supplier_type)
-        })
-    
-    return supplier_groups
 
-def _determine_supplier_type(self, product_data: Dict[str, Any]) -> Optional[str]:
+class OrderServiceSuppliers:
     """
-    Détermine le type de fournisseur à partir des métadonnées du produit.
+    Service pour la gestion des commandes côté fournisseurs.
     
-    Args:
-        product_data: Métadonnées du produit
+    Ce service gère les interactions avec les fournisseurs dropshipping,
+    y compris la sélection automatique du meilleur fournisseur pour une commande.
+    """
+    
+    def __init__(self, repository: OrderRepository, communicator: SupplierCommunicator = None):
+        """
+        Initialise le service des fournisseurs.
         
-    Returns:
-        Type de fournisseur ou None si indéterminé
-    """
-    metafields = product_data.get("metafields", {})
-    
-    # Vérification des différents fournisseurs possibles
-    if metafields.get("supplier_aliexpress_id"):
-        return SupplierType.ALIEXPRESS
-    elif metafields.get("supplier_cj_dropshipping_id"):
-        return SupplierType.CJ_DROPSHIPPING
-    
-    # Par défaut, on utilise AliExpress si aucun fournisseur n'est spécifié explicitement
-    # mais que d'autres métadonnées d'AliExpress sont présentes
-    if (
-        metafields.get("aliexpress_product_id") or 
-        metafields.get("aliexpress_variant_id")
-    ):
-        return SupplierType.ALIEXPRESS
-    
-    return None
-
-def _extract_supplier_data(self, product_data: Dict[str, Any], supplier_type: str) -> Dict[str, Any]:
-    """
-    Extrait les données spécifiques au fournisseur à partir des métadonnées du produit.
-    
-    Args:
-        product_data: Métadonnées du produit
-        supplier_type: Type de fournisseur
+        Args:
+            repository: Référentiel pour les données de commande
+            communicator: Communicateur avec les fournisseurs (facultatif)
+        """
+        self.repository = repository
+        self.communicator = communicator or SupplierCommunicator()
+        self.supplier_selector = SupplierSelector(self.communicator)
         
-    Returns:
-        Données spécifiques au fournisseur
-    """
-    metafields = product_data.get("metafields", {})
-    supplier_data = {}
-    
-    if supplier_type == SupplierType.ALIEXPRESS:
-        supplier_data = {
-            "product_id": metafields.get("aliexpress_product_id"),
-            "variant_id": metafields.get("aliexpress_variant_id"),
-            "supplier_id": metafields.get("supplier_aliexpress_id"),
-            "shipping_method": metafields.get("aliexpress_shipping_method", "standard"),
-            "properties": metafields.get("aliexpress_properties", {})
-        }
-    elif supplier_type == SupplierType.CJ_DROPSHIPPING:
-        supplier_data = {
-            "product_id": metafields.get("cj_dropshipping_product_id"),
-            "variant_id": metafields.get("cj_dropshipping_variant_id"),
-            "supplier_id": metafields.get("supplier_cj_dropshipping_id"),
-            "shipping_method": metafields.get("cj_dropshipping_shipping_method", "standard"),
-            "warehouse": metafields.get("cj_dropshipping_warehouse", "CN")
+        # Configuration de la préférence de fournisseur
+        self.default_supplier = os.getenv("DEFAULT_SUPPLIER", SupplierType.ALIEXPRESS)
+        
+        # Configuration des stratégies de sélection de fournisseur
+        self.supplier_selection_strategies = {
+            "auto": self._auto_select_supplier,
+            "cheapest": self._select_cheapest_supplier,
+            "fastest": self._select_fastest_supplier,
+            "default": self._select_default_supplier
         }
     
-    return supplier_data
-
-async def _create_supplier_order(self, original_order: Order, supplier_type: str, line_items: List[Dict[str, Any]]) -> SupplierOrder:
-    """
-    Crée une commande fournisseur à partir de la commande originale et des produits.
-    
-    Args:
-        original_order: Commande originale
-        supplier_type: Type de fournisseur
-        line_items: Liste des produits pour ce fournisseur
+    async def process_supplier_order(self, order_data: Dict[str, Any], strategy: str = "auto") -> Dict[str, Any]:
+        """
+        Traite une commande côté fournisseur, en sélectionnant le meilleur fournisseur.
         
-    Returns:
-        Commande fournisseur créée
-    """
-    # Génération d'un identifiant unique pour la commande fournisseur
-    supplier_order_id = str(uuid.uuid4())
-    
-    # Création de la commande fournisseur
-    supplier_order = SupplierOrder(
-        id=supplier_order_id,
-        original_order_id=original_order.id,
-        supplier_type=supplier_type,
-        supplier_order_id=None,  # Sera attribué par le fournisseur après l'envoi
-        status="pending",
-        line_items=line_items,
-        shipping_address=original_order.shipping_address,
-        tracking_info=None,
-        created_at=datetime.now().isoformat(),
-        updated_at=datetime.now().isoformat(),
-        errors=[]
-    )
-    
-    return supplier_order
-
-async def _send_order_to_supplier(self, supplier_order: SupplierOrder) -> bool:
-    """
-    Envoie une commande au fournisseur.
-    
-    Args:
-        supplier_order: Commande fournisseur à envoyer
-        
-    Returns:
-        Succès de l'envoi
-    """
-    try:
-        # Envoi de la commande au fournisseur via le communicateur
-        result = await self.supplier_communicator.place_order(supplier_order)
-        
-        if not result.success:
-            logger.error(f"Erreur lors de l'envoi de la commande {supplier_order.id} au fournisseur {supplier_order.supplier_type}: {result.error_message}")
+        Args:
+            order_data: Données de la commande
+            strategy: Stratégie de sélection du fournisseur ("auto", "cheapest", "fastest", "default")
             
-            # Mise à jour du statut et enregistrement de l'erreur
-            supplier_order.status = "error"
-            supplier_order.errors.append({
-                "timestamp": datetime.now().isoformat(),
-                "message": result.error_message
-            })
-            await self.repository.update_supplier_order(supplier_order)
-            return False
+        Returns:
+            Résultat du traitement
+        """
+        logger.info(f"Traitement de la commande {order_data.get('id')} avec la stratégie '{strategy}'")
         
-        # Mise à jour avec l'identifiant fournisseur
-        supplier_order.supplier_order_id = result.supplier_order_id
-        supplier_order.status = "processing"
-        await self.repository.update_supplier_order(supplier_order)
+        # Vérifier si la stratégie est valide
+        if strategy not in self.supplier_selection_strategies:
+            strategy = "auto"
+            logger.warning(f"Stratégie '{strategy}' non reconnue, utilisation de 'auto' à la place")
         
-        logger.info(f"Commande {supplier_order.id} envoyée avec succès au fournisseur {supplier_order.supplier_type} (ID: {supplier_order.supplier_order_id})")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Erreur lors de l'envoi de la commande {supplier_order.id} au fournisseur: {str(e)}")
-        
-        # Mise à jour du statut et enregistrement de l'erreur
-        supplier_order.status = "error"
-        supplier_order.errors.append({
-            "timestamp": datetime.now().isoformat(),
-            "message": str(e)
-        })
-        await self.repository.update_supplier_order(supplier_order)
-        return False
-
-async def _check_supplier_order_updates(self):
-    """
-    Vérifie les mises à jour des commandes fournisseurs.
-    """
-    # Récupération des commandes en cours de traitement
-    processing_orders = await self.repository.get_supplier_orders_by_status("processing")
-    
-    if not processing_orders:
-        logger.info("Aucune commande fournisseur en cours de traitement")
-        return
-    
-    logger.info(f"{len(processing_orders)} commandes fournisseurs en cours de traitement")
-    
-    # Vérification de chaque commande
-    for supplier_order in processing_orders:
+        # Sélectionner le fournisseur selon la stratégie
         try:
-            # Mise à jour du statut de la commande
-            updated = await self._update_supplier_order_status(supplier_order)
+            suppliers_details = await self._get_suppliers_for_products(order_data["line_items"], strategy)
             
-            if updated:
-                logger.info(f"Statut de la commande fournisseur {supplier_order.id} mis à jour avec succès")
+            if not suppliers_details:
+                return {
+                    "success": False,
+                    "error": "Aucun fournisseur disponible pour les produits commandés"
+                }
+            
+            # Organiser les produits par fournisseur
+            supplier_orders = self._organize_products_by_supplier(order_data, suppliers_details)
+            
+            # Traiter les commandes pour chaque fournisseur
+            results = await self._place_supplier_orders(supplier_orders)
+            
+            # Enregistrer les résultats dans la base de données
+            await self._save_supplier_orders(order_data["id"], results)
+            
+            return {
+                "success": True,
+                "orders": results
+            }
+            
         except Exception as e:
-            logger.error(f"Erreur lors de la mise à jour du statut de la commande fournisseur {supplier_order.id}: {str(e)}")
-
-async def _update_supplier_order_status(self, supplier_order: SupplierOrder) -> bool:
-    """
-    Met à jour le statut d'une commande fournisseur.
+            logger.error(f"Erreur lors du traitement de la commande {order_data.get('id')}: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Erreur lors du traitement: {str(e)}"
+            }
     
-    Args:
-        supplier_order: Commande fournisseur à mettre à jour
+    async def _get_suppliers_for_products(
+        self, line_items: List[Dict[str, Any]], strategy: str
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Obtient les fournisseurs pour chaque produit selon la stratégie choisie.
         
-    Returns:
-        Vrai si le statut a été mis à jour, faux sinon
-    """
-    if not supplier_order.supplier_order_id:
-        logger.warning(f"Commande fournisseur {supplier_order.id} sans identifiant fournisseur")
-        return False
+        Args:
+            line_items: Éléments de la commande
+            strategy: Stratégie de sélection
+            
+        Returns:
+            Dictionnaire des fournisseurs par produit
+        """
+        suppliers = {}
+        
+        for item in line_items:
+            product_id = item.get("product_id")
+            variant_id = item.get("variant_id")
+            
+            if not product_id:
+                logger.warning(f"Element de commande sans product_id: {item}")
+                continue
+            
+            try:
+                # Sélectionner le fournisseur selon la stratégie
+                select_strategy = self.supplier_selection_strategies[strategy]
+                supplier, details = await select_strategy(product_id, variant_id)
+                
+                if supplier:
+                    # Stocker les détails du fournisseur pour ce produit
+                    key = f"{product_id}:{variant_id}" if variant_id else product_id
+                    suppliers[key] = {
+                        "supplier": supplier,
+                        "details": details
+                    }
+                else:
+                    logger.warning(f"Aucun fournisseur trouvé pour le produit {product_id}")
+            
+            except Exception as e:
+                logger.error(f"Erreur lors de la sélection du fournisseur pour {product_id}: {str(e)}")
+        
+        return suppliers
     
-    # Récupération du statut depuis le fournisseur
-    status_result = await self.supplier_communicator.check_order_status(
-        supplier_order.supplier_type,
-        supplier_order.supplier_order_id
-    )
+    def _organize_products_by_supplier(
+        self, order_data: Dict[str, Any], suppliers_details: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Organise les produits par fournisseur pour passer des commandes groupées.
+        
+        Args:
+            order_data: Données de la commande
+            suppliers_details: Détails des fournisseurs par produit
+            
+        Returns:
+            Commandes organisées par fournisseur
+        """
+        supplier_orders = {}
+        
+        # Adresse de livraison commune
+        shipping_address = order_data.get("shipping_address", {})
+        
+        for item in order_data["line_items"]:
+            product_id = item.get("product_id")
+            variant_id = item.get("variant_id")
+            
+            key = f"{product_id}:{variant_id}" if variant_id else product_id
+            
+            if key not in suppliers_details:
+                logger.warning(f"Pas de détails fournisseur pour le produit {key}, ignoré")
+                continue
+            
+            supplier = suppliers_details[key]["supplier"]
+            
+            # Initialiser la commande pour ce fournisseur si nécessaire
+            if supplier not in supplier_orders:
+                supplier_orders[supplier] = {
+                    "order_id": order_data["id"],
+                    "shipping_address": shipping_address,
+                    "line_items": [],
+                    "customer": order_data.get("customer", {})
+                }
+            
+            # Ajouter l'item à la commande du fournisseur
+            supplier_orders[supplier]["line_items"].append(item)
+        
+        return supplier_orders
     
-    if not status_result.success:
-        logger.error(f"Erreur lors de la vérification du statut de la commande {supplier_order.id}: {status_result.error_message}")
-        return False
+    async def _place_supplier_orders(self, supplier_orders: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Place les commandes auprès des fournisseurs.
+        
+        Args:
+            supplier_orders: Commandes organisées par fournisseur
+            
+        Returns:
+            Résultats des commandes passées
+        """
+        results = []
+        
+        for supplier, order_data in supplier_orders.items():
+            try:
+                # Placer la commande chez le fournisseur
+                result = await self.communicator.place_order(supplier, order_data)
+                
+                # Ajouter le résultat à la liste
+                results.append({
+                    "supplier": supplier,
+                    "supplier_order_id": result.supplier_order_id,
+                    "status": result.status,
+                    "success": result.success,
+                    "error_message": result.error_message,
+                    "details": result.details
+                })
+                
+            except Exception as e:
+                logger.error(f"Erreur lors de la commande chez {supplier}: {str(e)}")
+                results.append({
+                    "supplier": supplier,
+                    "success": False,
+                    "status": "error",
+                    "error_message": f"Erreur: {str(e)}"
+                })
+        
+        return results
     
-    # Vérification si le statut a changé
-    if status_result.status == supplier_order.status:
-        return False
+    async def _save_supplier_orders(self, order_id: str, results: List[Dict[str, Any]]) -> None:
+        """
+        Enregistre les résultats des commandes fournisseurs dans la base de données.
+        
+        Args:
+            order_id: ID de la commande client
+            results: Résultats des commandes fournisseurs
+        """
+        # Pour chaque résultat de commande fournisseur
+        for result in results:
+            if result.get("success"):
+                # Enregistrer les détails de la commande fournisseur
+                await self.repository.create_supplier_order(
+                    order_id=order_id,
+                    supplier=result["supplier"],
+                    supplier_order_id=result["supplier_order_id"],
+                    status=result["status"],
+                    details=result.get("details", {})
+                )
     
-    # Mise à jour du statut
-    old_status = supplier_order.status
-    supplier_order.status = status_result.status
-    supplier_order.updated_at = datetime.now().isoformat()
+    async def get_supplier_order_status(self, supplier_order_id: str, supplier: str) -> Dict[str, Any]:
+        """
+        Récupère le statut d'une commande fournisseur.
+        
+        Args:
+            supplier_order_id: ID de la commande chez le fournisseur
+            supplier: Type de fournisseur
+            
+        Returns:
+            Statut de la commande
+        """
+        try:
+            result = await self.communicator.get_order_status(supplier, supplier_order_id)
+            
+            if result.success:
+                # Mettre à jour le statut dans la base de données
+                await self.repository.update_supplier_order_status(
+                    supplier_order_id=supplier_order_id,
+                    status=result.status,
+                    details=result.details
+                )
+            
+            return {
+                "success": result.success,
+                "supplier_order_id": supplier_order_id,
+                "status": result.status,
+                "details": result.details,
+                "error_message": result.error_message
+            }
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération du statut {supplier_order_id}: {str(e)}")
+            return {
+                "success": False,
+                "supplier_order_id": supplier_order_id,
+                "error_message": f"Erreur: {str(e)}"
+            }
     
-    # Si la commande est expédiée, enregistrement des informations de suivi
-    if status_result.status == "shipped" and status_result.tracking_info:
-        supplier_order.tracking_info = status_result.tracking_info
+    async def get_tracking_info(self, supplier_order_id: str, supplier: str) -> Dict[str, Any]:
+        """
+        Récupère les informations de suivi d'une commande fournisseur.
+        
+        Args:
+            supplier_order_id: ID de la commande chez le fournisseur
+            supplier: Type de fournisseur
+            
+        Returns:
+            Informations de suivi
+        """
+        try:
+            result = await self.communicator.get_tracking_info(supplier, supplier_order_id)
+            
+            if result.success and result.tracking_number:
+                # Mettre à jour les informations de suivi dans la base de données
+                await self.repository.update_supplier_order_tracking(
+                    supplier_order_id=supplier_order_id,
+                    tracking_number=result.tracking_number,
+                    tracking_url=result.tracking_url,
+                    shipping_company=result.shipping_company,
+                    details=result.details
+                )
+            
+            return {
+                "success": result.success,
+                "supplier_order_id": supplier_order_id,
+                "tracking_number": result.tracking_number,
+                "tracking_url": result.tracking_url,
+                "shipping_company": result.shipping_company,
+                "status": result.status,
+                "details": result.details,
+                "error_message": result.error_message
+            }
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération du suivi {supplier_order_id}: {str(e)}")
+            return {
+                "success": False,
+                "supplier_order_id": supplier_order_id,
+                "error_message": f"Erreur: {str(e)}"
+            }
     
-    # Enregistrement de la mise à jour
-    success = await self.repository.update_supplier_order(supplier_order)
+    async def cancel_supplier_order(self, supplier_order_id: str, supplier: str, reason: str) -> Dict[str, Any]:
+        """
+        Annule une commande fournisseur.
+        
+        Args:
+            supplier_order_id: ID de la commande chez le fournisseur
+            supplier: Type de fournisseur
+            reason: Raison de l'annulation
+            
+        Returns:
+            Résultat de l'annulation
+        """
+        try:
+            result = await self.communicator.cancel_order(supplier, supplier_order_id, reason)
+            
+            if result.success:
+                # Mettre à jour le statut dans la base de données
+                await self.repository.update_supplier_order_status(
+                    supplier_order_id=supplier_order_id,
+                    status="cancelled",
+                    details=result.details
+                )
+            
+            return {
+                "success": result.success,
+                "supplier_order_id": supplier_order_id,
+                "status": result.status,
+                "details": result.details,
+                "error_message": result.error_message
+            }
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'annulation {supplier_order_id}: {str(e)}")
+            return {
+                "success": False,
+                "supplier_order_id": supplier_order_id,
+                "error_message": f"Erreur: {str(e)}"
+            }
     
-    if not success:
-        logger.error(f"Erreur lors de l'enregistrement de la mise à jour de la commande fournisseur {supplier_order.id}")
-        return False
+    async def search_products(self, query: str, supplier: Optional[str] = None, limit: int = 20) -> Dict[str, Any]:
+        """
+        Recherche des produits chez les fournisseurs.
+        
+        Args:
+            query: Termes de recherche
+            supplier: Type de fournisseur (optionnel)
+            limit: Nombre de résultats par fournisseur
+            
+        Returns:
+            Résultats de la recherche
+        """
+        try:
+            if supplier:
+                # Recherche chez un fournisseur spécifique
+                results = await self.communicator.search_products(supplier, query, page=1, limit=limit)
+                return results
+            else:
+                # Recherche chez tous les fournisseurs
+                results = await self.supplier_selector.find_product_across_suppliers(query, limit)
+                return {
+                    "success": True,
+                    "products": results,
+                    "total": len(results)
+                }
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la recherche '{query}': {str(e)}")
+            return {
+                "success": False,
+                "error": f"Erreur lors de la recherche: {str(e)}",
+                "products": []
+            }
     
-    # Mise à jour de la commande principale si toutes les commandes fournisseurs sont expédiées ou livrées
-    if status_result.status in ["shipped", "delivered"]:
-        await self._update_original_order_status(supplier_order.original_order_id)
+    # Stratégies de sélection de fournisseur
     
-    logger.info(f"Statut de la commande fournisseur {supplier_order.id} mis à jour de {old_status} à {supplier_order.status}")
-    return True
+    async def _auto_select_supplier(self, product_id: str, variant_id: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+        """
+        Sélectionne automatiquement le meilleur fournisseur pour un produit.
+        
+        Args:
+            product_id: ID du produit
+            variant_id: ID de la variante (optionnel)
+            
+        Returns:
+            Tuple avec le fournisseur sélectionné et les détails du produit
+        """
+        return await self.supplier_selector.select_optimal_supplier(product_id, variant_id)
+    
+    async def _select_cheapest_supplier(self, product_id: str, variant_id: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+        """
+        Sélectionne le fournisseur le moins cher pour un produit.
+        
+        Args:
+            product_id: ID du produit
+            variant_id: ID de la variante (optionnel)
+            
+        Returns:
+            Tuple avec le fournisseur sélectionné et les détails du produit
+        """
+        # Récupérer les détails chez tous les fournisseurs disponibles
+        suppliers = [SupplierType.ALIEXPRESS, SupplierType.CJ_DROPSHIPPING]
+        product_details = {}
+        cheapest_supplier = None
+        cheapest_price = float("inf")
+        
+        for supplier in suppliers:
+            try:
+                details = await self.communicator.get_product_details(supplier, product_id)
+                
+                if not details.get("success", False):
+                    continue
+                
+                product_details[supplier] = details
+                
+                # Déterminer le prix
+                price = 0
+                if variant_id and "variations" in details:
+                    # Recherche du prix pour la variante spécifiée
+                    for variation in details.get("variations", []):
+                        if variation.get("id") == variant_id:
+                            price = variation.get("price", 0)
+                            break
+                else:
+                    # Si pas de variante, utiliser le prix minimum
+                    price = details.get("price", {}).get("min", 0)
+                
+                # Ajouter le coût d'expédition le moins cher
+                shipping_methods = details.get("shipping_info", {}).get("methods", [])
+                if shipping_methods:
+                    shipping_cost = min(method.get("price", 0) for method in shipping_methods)
+                    price += shipping_cost
+                
+                # Comparer avec le prix le plus bas trouvé
+                if price < cheapest_price:
+                    cheapest_price = price
+                    cheapest_supplier = supplier
+                
+            except Exception as e:
+                logger.warning(f"Erreur lors de la récupération des détails chez {supplier}: {str(e)}")
+        
+        if cheapest_supplier:
+            return cheapest_supplier, product_details[cheapest_supplier]
+        else:
+            return None, {"error": "Aucun fournisseur disponible pour ce produit"}
+    
+    async def _select_fastest_supplier(self, product_id: str, variant_id: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+        """
+        Sélectionne le fournisseur avec la livraison la plus rapide pour un produit.
+        
+        Args:
+            product_id: ID du produit
+            variant_id: ID de la variante (optionnel)
+            
+        Returns:
+            Tuple avec le fournisseur sélectionné et les détails du produit
+        """
+        # Récupérer les détails chez tous les fournisseurs disponibles
+        suppliers = [SupplierType.ALIEXPRESS, SupplierType.CJ_DROPSHIPPING]
+        product_details = {}
+        fastest_supplier = None
+        fastest_delivery = float("inf")
+        
+        for supplier in suppliers:
+            try:
+                details = await self.communicator.get_product_details(supplier, product_id)
+                
+                if not details.get("success", False):
+                    continue
+                
+                product_details[supplier] = details
+                
+                # Déterminer le délai de livraison
+                shipping_methods = details.get("shipping_info", {}).get("methods", [])
+                if not shipping_methods:
+                    continue
+                
+                # Extraire les délais de livraison (format habituel: "10-15 days")
+                min_delivery_time = float("inf")
+                for method in shipping_methods:
+                    delivery_time = method.get("delivery_time", "")
+                    if delivery_time:
+                        try:
+                            # Extraire le délai minimum
+                            parts = delivery_time.split("-")
+                            if len(parts) >= 1 and "days" in delivery_time:
+                                try:
+                                    min_days = int(parts[0].replace("days", "").strip())
+                                    min_delivery_time = min(min_delivery_time, min_days)
+                                except ValueError:
+                                    pass
+                        except (ValueError, IndexError):
+                            pass
+                
+                # Comparer avec le délai le plus court trouvé
+                if min_delivery_time < fastest_delivery:
+                    fastest_delivery = min_delivery_time
+                    fastest_supplier = supplier
+                
+            except Exception as e:
+                logger.warning(f"Erreur lors de la récupération des détails chez {supplier}: {str(e)}")
+        
+        if fastest_supplier:
+            return fastest_supplier, product_details[fastest_supplier]
+        else:
+            return None, {"error": "Aucun fournisseur disponible pour ce produit"}
+    
+    async def _select_default_supplier(self, product_id: str, variant_id: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
+        """
+        Sélectionne le fournisseur par défaut pour un produit.
+        
+        Args:
+            product_id: ID du produit
+            variant_id: ID de la variante (optionnel)
+            
+        Returns:
+            Tuple avec le fournisseur sélectionné et les détails du produit
+        """
+        try:
+            details = await self.communicator.get_product_details(self.default_supplier, product_id)
+            
+            if details.get("success", False):
+                return self.default_supplier, details
+            else:
+                # Si pas disponible chez le fournisseur par défaut, essayer l'autre fournisseur
+                other_supplier = SupplierType.CJ_DROPSHIPPING if self.default_supplier == SupplierType.ALIEXPRESS else SupplierType.ALIEXPRESS
+                
+                details = await self.communicator.get_product_details(other_supplier, product_id)
+                
+                if details.get("success", False):
+                    return other_supplier, details
+                else:
+                    return None, {"error": "Produit non disponible"}
+                
+        except Exception as e:
+            logger.error(f"Erreur lors de la sélection du fournisseur par défaut: {str(e)}")
+            return None, {"error": f"Erreur: {str(e)}"}
