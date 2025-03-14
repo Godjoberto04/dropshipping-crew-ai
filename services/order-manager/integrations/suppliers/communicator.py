@@ -59,10 +59,10 @@ class SupplierCommunicator:
                 
             elif supplier_type == SupplierType.CJ_DROPSHIPPING:
                 # Import dynamique pour éviter les dépendances circulaires
-                from .cj_dropshipping import CJDropshippingSupplier
+                from .cjdropshipping import CJDropshippingSupplier
                 
                 api_key = os.getenv("CJ_DROPSHIPPING_API_KEY")
-                api_url = os.getenv("CJ_DROPSHIPPING_API_URL", "https://api.cjdropshipping.com")
+                api_url = os.getenv("CJ_DROPSHIPPING_API_URL", "https://developers.cjdropshipping.com")
                 
                 if not api_key:
                     logger.error("Clé API CJ Dropshipping manquante. Impossible d'initialiser le fournisseur.")
