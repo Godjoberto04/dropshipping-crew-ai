@@ -57,6 +57,7 @@ class TestCJDropshippingSupplier(unittest.TestCase):
         }
         
         self.test_supplier_order_id = "CJ12345678"
+        self.test_product_id = "P12345"
     
     @patch('aiohttp.ClientSession.request')
     def test_place_order_success(self, mock_request):
@@ -273,6 +274,107 @@ class TestCJDropshippingSupplier(unittest.TestCase):
         self.assertEqual(call_args['method'], 'POST')
         self.assertIn(self.supplier.ENDPOINT_SEARCH_PRODUCTS, call_args['url'])
         self.assertEqual(call_args['json']['productName'], "test query")
+    
+    @patch('aiohttp.ClientSession.request')
+    def test_get_product_details_success(self, mock_request):
+        """Test de récupération des détails d'un produit réussi."""
+        # Configuration de la réponse simulée
+        mock_response = AsyncMock(spec=ClientResponse)
+        mock_response.status = 200
+        mock_response.text = AsyncMock(return_value=json.dumps({
+            "code": 200,
+            "message": "success",
+            "data": {
+                "pid": self.test_product_id,
+                "productName": "Test Product Detail",
+                "description": "This is a test product description",
+                "productImage": "https://cjdropshipping.com/image1.jpg",
+                "productImages": [
+                    "https://cjdropshipping.com/image1.jpg",
+                    "https://cjdropshipping.com/image2.jpg"
+                ],
+                "variants": [
+                    {
+                        "vid": "V12345",
+                        "sellPrice": 19.99,
+                        "variantStock": 100,
+                        "variantAttributes": [
+                            {"name": "color", "value": "red"},
+                            {"name": "size", "value": "medium"}
+                        ]
+                    },
+                    {
+                        "vid": "V12346",
+                        "sellPrice": 21.99,
+                        "variantStock": 50,
+                        "variantAttributes": [
+                            {"name": "color", "value": "blue"},
+                            {"name": "size", "value": "large"}
+                        ]
+                    }
+                ],
+                "shippings": [
+                    {
+                        "name": "CJPacket",
+                        "price": 5.99,
+                        "deliveryTime": "7-15 days"
+                    }
+                ]
+            }
+        }))
+        mock_response.raise_for_status = AsyncMock()
+        
+        # Configuration du mock pour la requête HTTP
+        mock_request.return_value.__aenter__.return_value = mock_response
+        
+        # Exécution du test
+        result = asyncio.run(self.supplier.get_product_details(self.test_product_id))
+        
+        # Vérifications
+        self.assertTrue(result["success"])
+        self.assertEqual(result["id"], self.test_product_id)
+        self.assertEqual(result["title"], "Test Product Detail")
+        self.assertEqual(result["description"], "This is a test product description")
+        self.assertEqual(len(result["images"]), 2)
+        self.assertEqual(len(result["variations"]), 2)
+        self.assertEqual(result["variations"][0]["properties"]["color"], "red")
+        self.assertEqual(result["variations"][1]["properties"]["color"], "blue")
+        self.assertEqual(result["shipping_info"]["methods"][0]["name"], "CJPacket")
+        
+        # Vérification que la requête a été effectuée correctement
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args[1]
+        self.assertEqual(call_args['method'], 'GET')
+        self.assertIn(self.supplier.ENDPOINT_PRODUCT_DETAILS, call_args['url'])
+        self.assertIn("pid="+self.test_product_id, str(call_args))
+
+    @patch('aiohttp.ClientSession.request')
+    def test_get_product_details_failure(self, mock_request):
+        """Test de récupération des détails d'un produit échoué."""
+        # Configuration de la réponse simulée
+        mock_response = AsyncMock(spec=ClientResponse)
+        mock_response.status = 200
+        mock_response.text = AsyncMock(return_value=json.dumps({
+            "code": 404,
+            "message": "Product not found"
+        }))
+        mock_response.raise_for_status = AsyncMock()
+        
+        # Configuration du mock pour la requête HTTP
+        mock_request.return_value.__aenter__.return_value = mock_response
+        
+        # Exécution du test
+        result = asyncio.run(self.supplier.get_product_details(self.test_product_id))
+        
+        # Vérifications
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"], "Product not found")
+        
+        # Vérification que la requête a été effectuée correctement
+        mock_request.assert_called_once()
+        call_args = mock_request.call_args[1]
+        self.assertEqual(call_args['method'], 'GET')
+        self.assertIn(self.supplier.ENDPOINT_PRODUCT_DETAILS, call_args['url'])
 
 if __name__ == '__main__':
     unittest.main()
