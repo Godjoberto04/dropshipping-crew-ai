@@ -11,10 +11,10 @@ from loguru import logger
 
 from services import OrderService
 from integrations.shopify import ShopifyClient
-from integrations.suppliers import SupplierCommunicator
+from integrations.suppliers.communicator import SupplierCommunicator
 from storage import OrderRepository
 from notifications import NotificationManager
-from .routers import orders, supplier_orders, health
+from .routers import orders, supplier_orders, health, supplier_selection
 from .utils import get_order_service
 
 # Configuration de Loguru
@@ -35,7 +35,7 @@ app = FastAPI(
 # Configuration CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Dans un environnement de production, limitez aux origines spécifiques
+    allow_origins=[os.getenv("CORS_ORIGINS", "*")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,8 +104,14 @@ async def shutdown_event():
 app.include_router(health.router, tags=["health"])
 app.include_router(orders.router, prefix="/orders", tags=["orders"])
 app.include_router(supplier_orders.router, prefix="/supplier-orders", tags=["supplier-orders"])
+app.include_router(supplier_selection.router, prefix="/suppliers", tags=["suppliers"])
 
 # Point d'entrée principal
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "app:app", 
+        host=os.getenv("API_HOST", "0.0.0.0"), 
+        port=int(os.getenv("API_PORT", 8000)), 
+        reload=os.getenv("API_RELOAD", "False").lower() == "true"
+    )
