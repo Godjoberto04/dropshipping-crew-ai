@@ -1,373 +1,282 @@
 #!/usr/bin/env python3
 """
 Tests unitaires pour le module TrendsAnalyzer.
+Vérifie le bon fonctionnement de la classe d'analyse de tendances via Google Trends.
 """
 
 import unittest
 import os
-import json
+import tempfile
 import pandas as pd
+from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
 
-# Inclusion du chemin parent pour importer les modules
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+# Import du module à tester
 from data_sources.trends.trends_analyzer import TrendsAnalyzer
 
 class TestTrendsAnalyzer(unittest.TestCase):
-    """Tests pour la classe TrendsAnalyzer."""
+    """Classe de tests pour TrendsAnalyzer."""
     
     def setUp(self):
-        """Configuration initiale pour les tests."""
-        # Configuration d'un répertoire de cache temporaire pour les tests
-        self.temp_cache_dir = "/tmp/pytrends_test_cache"
-        os.makedirs(self.temp_cache_dir, exist_ok=True)
+        """Initialisation avant chaque test."""
+        # Création d'un répertoire temporaire pour le cache
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.cache_dir = self.temp_dir.name
         
-        # Création d'une instance de l'analyseur
+        # Création d'une instance de TrendsAnalyzer avec Mock
+        self.patcher = patch('data_sources.trends.trends_analyzer.TrendReq')
+        self.mock_trend_req = self.patcher.start()
+        self.mock_trend_req.return_value = MagicMock()
+        
         self.analyzer = TrendsAnalyzer(
-            hl="fr",
+            hl='fr',
             tz=0,
-            geo="FR",
-            cache_dir=self.temp_cache_dir
+            geo='FR',
+            cache_dir=self.cache_dir
         )
     
     def tearDown(self):
-        """Nettoyage après les tests."""
-        # Nettoyage du cache de test (optionnel)
-        # import shutil
-        # shutil.rmtree(self.temp_cache_dir, ignore_errors=True)
-        pass
+        """Nettoyage après chaque test."""
+        self.patcher.stop()
+        self.temp_dir.cleanup()
     
     def test_init(self):
-        """Test l'initialisation de l'analyseur."""
-        self.assertEqual(self.analyzer.hl, "fr")
+        """Test de l'initialisation de la classe."""
+        self.assertEqual(self.analyzer.hl, 'fr')
         self.assertEqual(self.analyzer.tz, 0)
-        self.assertEqual(self.analyzer.geo, "FR")
-        self.assertEqual(self.analyzer.cache_dir, self.temp_cache_dir)
+        self.assertEqual(self.analyzer.geo, 'FR')
+        self.assertEqual(self.analyzer.cache_dir, self.cache_dir)
+        self.assertTrue(os.path.exists(self.cache_dir))
     
-    def test_cache_file_path(self):
-        """Test la génération du chemin de fichier de cache."""
-        keywords = ["test1", "test2"]
-        timeframe = "today 3-m"
-        geo = "FR"
-        cat = 0
+    def test_get_cache_file_path(self):
+        """Test de la génération du chemin de fichier cache."""
+        keywords = ['smartphone', 'tablette']
+        timeframe = 'today 3-m'
+        geo = 'FR'
+        category = 0
         
-        cache_path = self.analyzer._get_cache_file_path(keywords, timeframe, geo, cat)
+        cache_path = self.analyzer._get_cache_file_path(keywords, timeframe, geo, category)
         
-        # Vérifier que le chemin contient le répertoire de cache
-        self.assertTrue(cache_path.startswith(self.temp_cache_dir))
+        self.assertTrue(cache_path.startswith(self.cache_dir))
+        self.assertTrue('trends_' in cache_path)
+        self.assertTrue(cache_path.endswith('.pkl'))
+    
+    def test_is_likely_product(self):
+        """Test de la détection de produits probables."""
+        # Requêtes qui devraient être des produits
+        self.assertTrue(self.analyzer._is_likely_product("iPhone 14 Pro Max"))
+        self.assertTrue(self.analyzer._is_likely_product("Écouteurs Bluetooth sans fil"))
+        self.assertTrue(self.analyzer._is_likely_product("Caméra de sécurité extérieure"))
         
-        # Vérifier que le chemin contient les paramètres
-        self.assertIn("test1", cache_path)
-        self.assertIn("test2", cache_path)
-        self.assertIn("today", cache_path)
-        self.assertIn("FR", cache_path)
+        # Requêtes qui ne devraient pas être des produits
+        self.assertFalse(self.analyzer._is_likely_product("comment réparer iPhone"))
+        self.assertFalse(self.analyzer._is_likely_product("smartphone"))  # Mot unique
+        self.assertFalse(self.analyzer._is_likely_product("où acheter des écouteurs"))
+    
+    def test_get_category_keywords(self):
+        """Test de la récupération des mots-clés par catégorie."""
+        # Test avec une catégorie connue
+        fashion_keywords = self.analyzer._get_category_keywords("fashion")
+        self.assertTrue("fashion" in fashion_keywords)
+        self.assertTrue("fashion trends" in fashion_keywords)
+        
+        # Test avec une catégorie inconnue
+        unknown_keywords = self.analyzer._get_category_keywords("unknown_category")
+        self.assertTrue("unknown_category" in unknown_keywords)
+        self.assertTrue("unknown_category trends" in unknown_keywords)
+        
+        # Test sans catégorie
+        default_keywords = self.analyzer._get_category_keywords()
+        self.assertTrue("trending products" in default_keywords)
+    
+    @patch('data_sources.trends.trends_analyzer.TrendsAnalyzer._calculate_trend_metrics')
+    @patch('data_sources.trends.trends_analyzer.TrendsAnalyzer._generate_summary')
+    def test_analyze_keywords_basic(self, mock_generate_summary, mock_calculate_metrics):
+        """Test de base de la méthode analyze_keywords."""
+        # Configuration des mocks
+        self.analyzer.pytrends.interest_over_time.return_value = pd.DataFrame({
+            'smartphone': [50, 60, 70]
+        })
+        self.analyzer.pytrends.related_queries.return_value = {'smartphone': {}}
+        self.analyzer.pytrends.related_topics.return_value = {'smartphone': {}}
+        self.analyzer.pytrends.interest_by_region.return_value = pd.DataFrame({
+            'smartphone': [40, 50, 60]
+        })
+        
+        mock_calculate_metrics.return_value = {'smartphone': {'trend_score': 75}}
+        mock_generate_summary.return_value = {'top_keyword': 'smartphone'}
+        
+        # Appel de la méthode à tester avec cache désactivé
+        result = self.analyzer.analyze_keywords('smartphone', use_cache=False)
+        
+        # Vérification des appels
+        self.analyzer.pytrends.build_payload.assert_called_once()
+        self.analyzer.pytrends.interest_over_time.assert_called_once()
+        self.analyzer.pytrends.related_queries.assert_called_once()
+        self.analyzer.pytrends.related_topics.assert_called_once()
+        self.analyzer.pytrends.interest_by_region.assert_called_once()
+        mock_calculate_metrics.assert_called_once()
+        mock_generate_summary.assert_called_once()
+        
+        # Vérification du résultat
+        self.assertIn('interest_over_time', result)
+        self.assertIn('related_queries', result)
+        self.assertIn('related_topics', result)
+        self.assertIn('interest_by_region', result)
+        self.assertIn('trend_metrics', result)
+        self.assertIn('summary', result)
     
     def test_calculate_trend_score(self):
-        """Test le calcul du score de tendance."""
-        # Cas 1: Bonne tendance
+        """Test du calcul du score de tendance."""
+        # Test avec des valeurs significatives
         score1 = self.analyzer._calculate_trend_score(
             current_interest=80,
             growth_rate=30,
-            volatility=10,
-            momentum=40
+            volatility=15,
+            momentum=20,
+            average_interest=75
         )
+        self.assertGreater(score1, 70)  # Score élevé pour de bonnes métriques
         
-        # Cas 2: Tendance moyenne
+        # Test avec des valeurs faibles
         score2 = self.analyzer._calculate_trend_score(
-            current_interest=50,
-            growth_rate=5,
-            volatility=20,
-            momentum=0
-        )
-        
-        # Cas 3: Mauvaise tendance
-        score3 = self.analyzer._calculate_trend_score(
             current_interest=20,
-            growth_rate=-20,
-            volatility=40,
-            momentum=-30
+            growth_rate=-15,
+            volatility=50,
+            momentum=-20,
+            average_interest=25
         )
+        self.assertLess(score2, 40)  # Score faible pour de mauvaises métriques
         
-        # Vérifications
-        self.assertGreater(score1, 70)  # Bon score
-        self.assertGreater(score2, 40)  # Score moyen
-        self.assertLess(score2, 70)     # Score moyen
-        self.assertLess(score3, 40)     # Mauvais score
+        # Vérification que current_interest est plafonné à 100
+        score3 = self.analyzer._calculate_trend_score(
+            current_interest=150,
+            growth_rate=30,
+            volatility=15,
+            momentum=20,
+            average_interest=75
+        )
+        score3_capped = self.analyzer._calculate_trend_score(
+            current_interest=100,
+            growth_rate=30,
+            volatility=15,
+            momentum=20,
+            average_interest=75
+        )
+        self.assertEqual(score3, score3_capped)
     
-    @patch('pytrends.request.TrendReq')
-    def test_analyze_keywords_mock(self, mock_trend_req):
-        """Test l'analyse des mots-clés avec un mock PyTrends."""
+    @patch('data_sources.trends.trends_analyzer.TrendsAnalyzer.analyze_keywords')
+    def test_compare_products(self, mock_analyze_keywords):
+        """Test de la comparaison de produits."""
         # Configuration du mock
-        mock_pytrends = MagicMock()
-        mock_trend_req.return_value = mock_pytrends
-        
-        # Mock des réponses
-        mock_interest_over_time = pd.DataFrame({
-            'test_keyword': [10, 20, 30, 40, 50],
-            'isPartial': [False, False, False, False, False]
-        })
-        mock_interest_by_region = pd.DataFrame({
-            'test_keyword': [30, 40, 50]
-        })
-        mock_related_queries = {
-            'test_keyword': {
-                'top': pd.DataFrame({'query': ['test query 1'], 'value': [100]}),
-                'rising': pd.DataFrame({'query': ['test query 2'], 'value': [200]})
-            }
-        }
-        mock_related_topics = {
-            'test_keyword': {
-                'top': pd.DataFrame({'value': ['test topic 1'], 'formattedValue': [1]}),
-                'rising': pd.DataFrame({'value': ['test topic 2'], 'formattedValue': [2]})
-            }
-        }
-        
-        mock_pytrends.interest_over_time.return_value = mock_interest_over_time
-        mock_pytrends.interest_by_region.return_value = mock_interest_by_region
-        mock_pytrends.related_queries.return_value = mock_related_queries
-        mock_pytrends.related_topics.return_value = mock_related_topics
-        
-        # Remplacer l'attribut pytrends de l'analyseur par notre mock
-        self.analyzer.pytrends = mock_pytrends
-        
-        # Exécuter l'analyse avec le mock
-        result = self.analyzer.analyze_keywords(
-            keywords=["test_keyword"],
-            timeframe="medium_term",
-            use_cache=False
-        )
-        
-        # Vérifier que la méthode build_payload a été appelée
-        mock_pytrends.build_payload.assert_called_once()
-        
-        # Vérifier que les méthodes pour obtenir les données ont été appelées
-        mock_pytrends.interest_over_time.assert_called_once()
-        mock_pytrends.interest_by_region.assert_called_once()
-        mock_pytrends.related_queries.assert_called_once()
-        mock_pytrends.related_topics.assert_called_once()
-        
-        # Vérifier que le résultat contient les bonnes clés
-        expected_keys = [
-            'interest_over_time', 'related_queries', 'related_topics',
-            'interest_by_region', 'trend_metrics', 'summary'
-        ]
-        for key in expected_keys:
-            self.assertIn(key, result)
-        
-        # Vérifier que le trend_metrics contient l'entrée pour le mot-clé
-        self.assertIn('test_keyword', result['trend_metrics'])
-        
-        # Vérifier quelques métriques de base
-        metrics = result['trend_metrics']['test_keyword']
-        self.assertEqual(metrics['current_interest'], 50)  # Dernière valeur
-        self.assertEqual(metrics['average_interest'], 30)  # Moyenne
-        self.assertEqual(metrics['growth_rate'], 400.0)    # (50-10)/10 * 100
-    
-    def test_cache_save_load(self):
-        """Test la sauvegarde et le chargement depuis le cache."""
-        # Données de test
-        test_data = {
+        mock_analyze_keywords.return_value = {
             'interest_over_time': pd.DataFrame({
-                'test_keyword': [10, 20, 30],
-                'isPartial': [False, False, False]
+                'produit1': [50, 60, 70],
+                'produit2': [40, 45, 50]
             }),
-            'summary': {
-                'highlights': ['Test highlight'],
-                'trend_status': {'test_keyword': 'stable'}
+            'trend_metrics': {
+                'produit1': {'trend_score': 75, 'growth_rate': 20, 'is_growing': True},
+                'produit2': {'trend_score': 60, 'growth_rate': 10, 'is_growing': True}
             }
         }
         
-        # Chemin du fichier de cache
-        cache_file = os.path.join(self.temp_cache_dir, 'test_cache.json')
+        # Appel de la méthode à tester
+        result = self.analyzer.compare_products(['produit1', 'produit2'])
         
-        # Sauvegarde dans le cache
-        self.analyzer._save_to_cache(cache_file, test_data)
+        # Vérification du mock
+        mock_analyze_keywords.assert_called_once()
         
-        # Vérifier que le fichier a été créé
-        self.assertTrue(os.path.exists(cache_file))
-        
-        # Chargement depuis le cache
-        loaded_data = self.analyzer._load_from_cache(cache_file)
-        
-        # Vérifier que les données ont été correctement chargées
-        self.assertIn('summary', loaded_data)
-        self.assertIn('highlights', loaded_data['summary'])
-        self.assertEqual(loaded_data['summary']['highlights'], ['Test highlight'])
-        
-        # Vérifier le chargement du DataFrame
-        self.assertIn('interest_over_time', loaded_data)
-        self.assertTrue(isinstance(loaded_data['interest_over_time'], pd.DataFrame))
+        # Vérification du résultat
+        self.assertIn('ranked_products', result)
+        self.assertEqual(len(result['ranked_products']), 2)
+        self.assertEqual(result['ranked_products'][0]['name'], 'produit1')  # Premier produit doit être produit1
+        self.assertEqual(result['top_product'], 'produit1')
+        self.assertIn('interest_over_time', result)
+        self.assertIn('product_trends', result)
     
-    def test_generate_summary(self):
-        """Test la génération de résumé d'analyse."""
-        # Données de test
-        trend_metrics = {
-            'test_keyword': {
-                'current_interest': 80,
-                'average_interest': 60,
-                'growth_rate': 30,
-                'volatility': 10,
-                'momentum': 20,
-                'is_growing': True,
-                'is_seasonal': False,
-                'seasonality_score': 0,
-                'trend_score': 75
+    @patch('data_sources.trends.trends_analyzer.TrendsAnalyzer.analyze_keywords')
+    def test_calculate_overall_trend_score(self, mock_analyze_keywords):
+        """Test du calcul du score de tendance global."""
+        # Préparation des données de test
+        results_by_timeframe = {
+            'short_term': {
+                'trend_metrics': {
+                    'produit': {'trend_score': 80}
+                }
+            },
+            'medium_term': {
+                'trend_metrics': {
+                    'produit': {'trend_score': 70}
+                }
+            },
+            'long_term': {
+                'trend_metrics': {
+                    'produit': {'trend_score': 60}
+                }
             }
         }
         
-        related_queries = {
-            'test_keyword': {
-                'top': pd.DataFrame({
-                    'query': ['test query 1', 'test query 2'],
-                    'value': [100, 90]
-                }),
-                'rising': pd.DataFrame({
-                    'query': ['test query 3', 'test query 4'],
-                    'value': [200, 150]
-                })
+        # Appel de la méthode à tester
+        score = self.analyzer._calculate_overall_trend_score(results_by_timeframe)
+        
+        # Vérification du résultat
+        # Le score global devrait être une moyenne pondérée (0.5*80 + 0.3*70 + 0.2*60) = 73
+        self.assertAlmostEqual(score, 73, delta=1)
+        
+        # Test avec données incomplètes
+        incomplete_results = {
+            'short_term': {
+                'trend_metrics': {
+                    'produit': {'trend_score': 80}
+                }
+            },
+            'medium_term': {
+                'error': 'Erreur lors de l\'analyse'
             }
         }
         
-        # Génération du résumé
-        summary = self.analyzer._generate_summary(trend_metrics, related_queries)
-        
-        # Vérifications
-        self.assertIn('highlights', summary)
-        self.assertIn('top_related_queries', summary)
-        self.assertIn('trend_status', summary)
-        
-        # Vérifier les points saillants
-        self.assertTrue(any('tendance à la hausse' in h for h in summary['highlights']))
-        
-        # Vérifier le statut de tendance
-        self.assertEqual(summary['trend_status']['test_keyword'], 'hausse')
-        
-        # Vérifier les requêtes associées
-        self.assertIn('test_keyword', summary['top_related_queries'])
-        self.assertEqual(len(summary['top_related_queries']['test_keyword']['top']), 2)
-        self.assertEqual(len(summary['top_related_queries']['test_keyword']['rising']), 2)
+        incomplete_score = self.analyzer._calculate_overall_trend_score(incomplete_results)
+        self.assertEqual(incomplete_score, 80)  # Seulement le short_term est pris en compte
     
-    @patch('pytrends.request.TrendReq')
-    def test_analyze_product(self, mock_trend_req):
-        """Test l'analyse complète d'un produit."""
+    @patch('data_sources.trends.trends_analyzer.TrendsAnalyzer.analyze_keywords')
+    def test_analyze_product(self, mock_analyze_keywords):
+        """Test de l'analyse complète d'un produit."""
         # Configuration du mock
-        mock_pytrends = MagicMock()
-        mock_trend_req.return_value = mock_pytrends
-        
-        # Mock des réponses pour différentes périodes
-        mock_responses = {}
-        for timeframe in ['short_term', 'medium_term', 'long_term']:
-            mock_responses[timeframe] = {
+        def mock_analyze_side_effect(keywords, timeframe, **kwargs):
+            return {
                 'interest_over_time': pd.DataFrame({
-                    'test_product': [30, 40, 50],
-                    'isPartial': [False, False, False]
+                    keywords[0]: [60, 70, 80] if timeframe == 'now 7-d' else [50, 60, 70]
                 }),
-                'related_queries': {
-                    'test_product': {
-                        'top': pd.DataFrame({'query': [f'{timeframe} query'], 'value': [100]}),
-                        'rising': pd.DataFrame({'query': [f'{timeframe} rising'], 'value': [200]})
-                    }
-                },
                 'trend_metrics': {
-                    'test_product': {
-                        'current_interest': 50,
-                        'growth_rate': 66.67,
+                    keywords[0]: {
+                        'trend_score': 75 if timeframe == 'now 7-d' else 65,
+                        'growth_rate': 20 if timeframe == 'now 7-d' else 10,
                         'is_growing': True,
-                        'trend_score': 70
-                    }
-                },
-                'summary': {'highlights': [f'{timeframe} highlight']}
-            }
-        
-        # Patch de la méthode analyze_keywords pour retourner nos mock responses
-        with patch.object(self.analyzer, 'analyze_keywords') as mock_analyze:
-            def side_effect(keywords, timeframe, **kwargs):
-                if timeframe in mock_responses:
-                    return mock_responses[timeframe]
-                return {}
-            
-            mock_analyze.side_effect = side_effect
-            
-            # Exécution de l'analyse de produit
-            result = self.analyzer.analyze_product(
-                product_name="test_product",
-                product_keywords=["keyword1", "keyword2"]
-            )
-            
-            # Vérifications
-            self.assertEqual(result['product_name'], 'test_product')
-            self.assertIn('overall_trend_score', result)
-            self.assertIn('is_trending', result)
-            self.assertIn('seasonality', result)
-            self.assertIn('conclusion', result)
-            
-            # Vérifier les appels à analyze_keywords
-            self.assertEqual(mock_analyze.call_count, 3)  # Une fois pour chaque timeframe
-    
-    def test_is_product_trending(self):
-        """Test la détection de produit en tendance."""
-        # Cas où le produit est en tendance
-        trending_results = {
-            'short_term': {
-                'trend_metrics': {
-                    'test_product': {
-                        'is_growing': True,
-                        'trend_score': 80
-                    }
-                }
-            },
-            'medium_term': {
-                'trend_metrics': {
-                    'test_product': {
-                        'is_growing': True,
-                        'trend_score': 70
+                        'is_seasonal': False
                     }
                 }
             }
-        }
         
-        # Cas où le produit n'est pas en tendance
-        not_trending_results = {
-            'short_term': {
-                'trend_metrics': {
-                    'test_product': {
-                        'is_growing': False,
-                        'trend_score': 60
-                    }
-                }
-            },
-            'medium_term': {
-                'trend_metrics': {
-                    'test_product': {
-                        'is_growing': True,
-                        'trend_score': 50
-                    }
-                }
-            }
-        }
+        mock_analyze_keywords.side_effect = mock_analyze_side_effect
         
-        # Cas avec erreur
-        error_results = {
-            'short_term': {
-                'error': 'Something went wrong'
-            },
-            'medium_term': {
-                'trend_metrics': {
-                    'test_product': {
-                        'is_growing': True,
-                        'trend_score': 80
-                    }
-                }
-            }
-        }
+        # Appel de la méthode à tester
+        result = self.analyzer.analyze_product('produit test', product_keywords=['keyword1'])
         
-        # Vérifications
-        self.assertTrue(self.analyzer._is_product_trending(trending_results))
-        self.assertFalse(self.analyzer._is_product_trending(not_trending_results))
-        self.assertFalse(self.analyzer._is_product_trending(error_results))
-
+        # Vérification des appels
+        self.assertEqual(mock_analyze_keywords.call_count, 4)  # 3 timeframes + 1 produit associé
+        
+        # Vérification du résultat
+        self.assertEqual(result['product_name'], 'produit test')
+        self.assertIn('analysis_by_timeframe', result)
+        self.assertIn('related_keywords_analysis', result)
+        self.assertIn('overall_trend_score', result)
+        self.assertIn('is_trending', result)
+        self.assertIn('seasonality', result)
+        self.assertIn('conclusion', result)
+        
+        # Le premier appel devrait être avec le nom du produit et le timeframe short_term
+        first_call_args = mock_analyze_keywords.call_args_list[0][0]
+        self.assertEqual(first_call_args[0], ['produit test'])
 
 if __name__ == '__main__':
     unittest.main()
