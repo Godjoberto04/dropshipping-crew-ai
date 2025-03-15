@@ -1,35 +1,38 @@
 """
-Point d'entrée principal pour l'API de l'agent Order Manager.
+Application FastAPI principale pour l'agent Order Manager.
 """
 import os
-import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-# Créer l'application FastAPI
+# Création de l'application FastAPI
 app = FastAPI(
     title="Order Manager API",
-    description="API pour la gestion des commandes de dropshipping",
+    description="API pour la gestion des commandes du système de dropshipping autonome",
     version="0.1.0"
 )
 
-# Ajouter CORS middleware
+# Configuration des CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # A définir plus précisément en production
+    allow_origins=["*"],  # A remplacer par les origines spécifiques en production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Importer les routeurs après initialisation de l'app
-from api.routers import health
+# Route de santé
+@app.get("/health")
+async def health_check():
+    """Endpoint de vérification de santé de l'API."""
+    return {
+        "status": "ok",
+        "version": "0.1.0",
+        "agent": "order-manager"
+    }
 
-# Ajouter les routeurs à l'application
-app.include_router(health.router, tags=["health"])
-
-# Point d'entrée pour démarrer l'application directement
+# Point d'entrée principal
 if __name__ == "__main__":
-    host = os.getenv("API_HOST", "0.0.0.0")
-    port = int(os.getenv("API_PORT", "8080"))
-    uvicorn.run("api.app:app", host=host, port=port, reload=True)
+    import uvicorn
+    port = int(os.getenv("PORT", "8080"))
+    uvicorn.run("api.app:app", host="0.0.0.0", port=port, reload=True)
