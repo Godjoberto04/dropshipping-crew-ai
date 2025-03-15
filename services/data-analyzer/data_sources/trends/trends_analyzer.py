@@ -13,6 +13,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Union, Tuple
 import logging
+import pickle
 from pytrends.request import TrendReq
 from pytrends.exceptions import ResponseError
 
@@ -188,489 +189,494 @@ class TrendsAnalyzer:
             logger.error(error_msg, exc_info=True)
             raise
 
-    def analyze_product(
-        self, 
-        product_name: str,
-        product_keywords: List[str] = None,
-        timeframes: List[str] = None,
-        geo: str = None
-    ) -> Dict[str, Any]:
+    def _generate_product_conclusion(self, results_by_timeframe: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
-        Analyse complète d'un produit sur plusieurs périodes.
-        
-        Args:
-            product_name: Nom du produit
-            product_keywords: Mots-clés supplémentaires liés au produit
-            timeframes: Liste des périodes à analyser
-            geo: Zone géographique
-            
-        Returns:
-            Dictionnaire avec l'analyse complète du produit
-        """
-        if product_keywords is None:
-            product_keywords = []
-            
-        # Fusion et déduplication du nom de produit et des mots-clés
-        all_keywords = [product_name] + product_keywords
-        unique_keywords = list(dict.fromkeys(all_keywords))
-        
-        if timeframes is None:
-            timeframes = ['short_term', 'medium_term', 'long_term']
-            
-        # Résultats pour chaque période
-        results_by_timeframe = {}
-        
-        for timeframe in timeframes:
-            try:
-                # On analyse uniquement le nom du produit en détail
-                results = self.analyze_keywords(
-                    keywords=[product_name],
-                    timeframe=timeframe,
-                    geo=geo
-                )
-                results_by_timeframe[timeframe] = results
-            except Exception as e:
-                logger.warning(f"Erreur lors de l'analyse pour {timeframe}: {str(e)}")
-                results_by_timeframe[timeframe] = {"error": str(e)}
-        
-        # Analyse des mots-clés associés sur la période moyenne
-        related_keywords_analysis = {}
-        
-        if len(product_keywords) > 0:
-            for keyword in product_keywords[:4]:  # Limité à 4 pour éviter trop de requêtes
-                try:
-                    keyword_results = self.analyze_keywords(
-                        keywords=[keyword],
-                        timeframe='medium_term',
-                        geo=geo
-                    )
-                    related_keywords_analysis[keyword] = keyword_results
-                except Exception as e:
-                    logger.warning(f"Erreur lors de l'analyse du mot-clé {keyword}: {str(e)}")
-        
-        # Création d'un rapport complet
-        product_analysis = {
-            'product_name': product_name,
-            'keywords': unique_keywords,
-            'analysis_by_timeframe': results_by_timeframe,
-            'related_keywords_analysis': related_keywords_analysis,
-            'overall_trend_score': self._calculate_overall_trend_score(results_by_timeframe),
-            'is_trending': self._is_product_trending(results_by_timeframe),
-            'seasonality': self._detect_seasonality(results_by_timeframe),
-            'conclusion': self._generate_product_conclusion(results_by_timeframe)
-        }
-        
-        return product_analysis
-
-    def compare_products(
-        self,
-        products: List[str],
-        timeframe: str = 'medium_term',
-        geo: str = None,
-        category: int = 0,
-        use_cache: bool = True
-    ) -> Dict[str, Any]:
-        """
-        Compare plusieurs produits sur la base de leurs tendances.
-        
-        Args:
-            products: Liste des noms de produits à comparer (max 5)
-            timeframe: Période d'analyse
-            geo: Zone géographique
-            category: ID de catégorie Google Trends
-            use_cache: Utiliser le cache si disponible
-            
-        Returns:
-            Dictionnaire avec les résultats de la comparaison
-            
-        Raises:
-            ValueError: Si les paramètres sont invalides
-            Exception: Si la comparaison échoue
-        """
-        # Validation des paramètres
-        if not products:
-            raise ValueError("Au moins un produit est requis")
-            
-        if len(products) < 2:
-            raise ValueError("Au moins deux produits sont nécessaires pour une comparaison")
-            
-        if len(products) > 5:
-            logger.warning("Plus de 5 produits fournis. Seuls les 5 premiers seront comparés.")
-            products = products[:5]
-        
-        logger.info(f"Comparaison de {len(products)} produits: {', '.join(products)}")
-        
-        try:
-            # Utilisation de la fonction d'analyse de mots-clés existante
-            analysis_results = self.analyze_keywords(
-                keywords=products,
-                timeframe=timeframe,
-                geo=geo,
-                category=category,
-                use_cache=use_cache
-            )
-            
-            # Extraction des métriques de tendance pour la comparaison
-            trend_metrics = analysis_results.get('trend_metrics', {})
-            
-            # Création d'un classement des produits
-            ranked_products = []
-            for product, metrics in trend_metrics.items():
-                ranked_products.append({
-                    'name': product,
-                    'trend_score': metrics.get('trend_score', 0),
-                    'current_interest': metrics.get('current_interest', 0),
-                    'growth_rate': metrics.get('growth_rate', 0),
-                    'is_growing': metrics.get('is_growing', False),
-                    'is_seasonal': metrics.get('is_seasonal', False)
-                })
-            
-            # Tri des produits par score de tendance (du plus élevé au plus bas)
-            ranked_products.sort(key=lambda x: x['trend_score'], reverse=True)
-            
-            # Ajout des données d'intérêt au fil du temps pour visualisation
-            interest_over_time = {}
-            if not analysis_results.get('interest_over_time', pd.DataFrame()).empty:
-                for product in products:
-                    if product in analysis_results['interest_over_time'].columns:
-                        interest_over_time[product] = analysis_results['interest_over_time'][product].tolist()
-            
-            # Construction du résultat de la comparaison
-            comparison_result = {
-                'ranked_products': ranked_products,
-                'interest_over_time': interest_over_time,
-                'analysis_period': timeframe,
-                'timestamp': time.time(),
-                'top_product': ranked_products[0]['name'] if ranked_products else None,
-                'product_trends': {p['name']: {'score': p['trend_score'], 'growing': p['is_growing']} for p in ranked_products}
-            }
-            
-            return comparison_result
-            
-        except Exception as e:
-            error_msg = f"Erreur lors de la comparaison des produits: {str(e)}"
-            logger.error(error_msg, exc_info=True)
-            raise
-            
-    def _calculate_overall_trend_score(self, results_by_timeframe: Dict[str, Dict[str, Any]]) -> float:
-        """
-        Calcule un score global de tendance basé sur les analyses de différentes périodes.
+        Génère une conclusion globale pour l'analyse d'un produit.
         
         Args:
             results_by_timeframe: Résultats d'analyse par période
+            
+        Returns:
+            Dictionnaire avec les conclusions
+        """
+        conclusion = {
+            'overall_assessment': '',
+            'recommendation': '',
+            'key_insights': [],
+            'considerations': [],
+            'confidence': 'medium'
+        }
+        
+        # Variables de synthèse
+        short_term_growing = False
+        medium_term_growing = False
+        is_seasonal = False
+        seasonality_info = {}
+        trend_score = 0
+        
+        # Vérification des périodes et extraction des métriques clés
+        for timeframe, results in results_by_timeframe.items():
+            if 'error' in results or 'trend_metrics' not in results:
+                continue
+                
+            trend_metrics = results.get('trend_metrics', {})
+            if not trend_metrics:
+                continue
+                
+            # Prendre le premier mot-clé (normalement un seul pour analyze_product)
+            keyword = list(trend_metrics.keys())[0]
+            metrics = trend_metrics[keyword]
+            
+            if timeframe == 'short_term':
+                short_term_growing = metrics.get('is_growing', False)
+                
+            if timeframe == 'medium_term':
+                medium_term_growing = metrics.get('is_growing', False)
+                
+            if timeframe in ('long_term', 'five_years'):
+                is_seasonal = metrics.get('is_seasonal', False)
+                if is_seasonal:
+                    seasonality_info = {
+                        'peak_months': results_by_timeframe.get('seasonality', {}).get('peak_months', []),
+                        'score': metrics.get('seasonality_score', 0)
+                    }
+        
+        # Récupération du score de tendance global (déjà calculé)
+        trend_score = results_by_timeframe.get('overall_trend_score', 0)
+        if not isinstance(trend_score, (int, float)):
+            try:
+                trend_score = float(trend_score)
+            except (ValueError, TypeError):
+                trend_score = 0
+                
+        # Détermination du niveau de confiance
+        confidence_level = 'medium'  # Valeur par défaut
+        analysis_count = sum(1 for r in results_by_timeframe.values() if 'error' not in r)
+        if analysis_count >= 3:
+            confidence_level = 'high'
+        elif analysis_count <= 1:
+            confidence_level = 'low'
+            
+        # Génération de l'évaluation globale
+        overall_assessment = ""
+        if trend_score >= 75:
+            overall_assessment = "Produit à fort potentiel avec un intérêt soutenu."
+        elif trend_score >= 60:
+            overall_assessment = "Produit avec un bon potentiel et un intérêt significatif."
+        elif trend_score >= 45:
+            overall_assessment = "Produit avec un potentiel modéré et un intérêt stable."
+        elif trend_score >= 30:
+            overall_assessment = "Produit avec un potentiel limité et un intérêt faible."
+        else:
+            overall_assessment = "Produit à faible potentiel avec un intérêt minimal."
+            
+        # Génération de la recommandation
+        recommendation = ""
+        if trend_score >= 75 and short_term_growing:
+            recommendation = "Fortement recommandé pour le dropshipping. Ce produit montre un fort intérêt et une tendance croissante."
+        elif trend_score >= 60 and (short_term_growing or medium_term_growing):
+            recommendation = "Recommandé pour le dropshipping. Ce produit présente un bon niveau d'intérêt et une tendance positive."
+        elif trend_score >= 60 and is_seasonal:
+            peak_months_str = ", ".join(seasonality_info.get('peak_months', []))
+            recommendation = f"Recommandé pour le dropshipping saisonnier. Ce produit présente un fort intérêt saisonnier, particulièrement en {peak_months_str}."
+        elif trend_score >= 45:
+            recommendation = "Peut être considéré pour le dropshipping avec prudence. Ce produit présente un intérêt modéré."
+        else:
+            recommendation = "Non recommandé pour le dropshipping. Ce produit présente un intérêt insuffisant pour être rentable."
+            
+        # Génération des insights clés
+        key_insights = []
+        
+        if short_term_growing and medium_term_growing:
+            key_insights.append("Croissance soutenue sur le court et moyen terme, indiquant une tendance solide.")
+        elif short_term_growing:
+            key_insights.append("Croissance récente, potentiellement une tendance émergente.")
+        elif not short_term_growing and not medium_term_growing and trend_score >= 60:
+            key_insights.append("Intérêt stable et significatif, indiquant un produit établi.")
+            
+        if is_seasonal:
+            peak_months_str = ", ".join(seasonality_info.get('peak_months', []))
+            key_insights.append(f"Produit saisonnier avec des pics d'intérêt en {peak_months_str}.")
+            
+        # Génération des considérations
+        considerations = []
+        
+        if is_seasonal:
+            considerations.append("Planifier les stocks et le marketing en fonction de la saisonnalité identifiée.")
+            
+        if short_term_growing and not medium_term_growing:
+            considerations.append("La croissance récente pourrait être temporaire. Surveiller l'évolution avant d'investir massivement.")
+            
+        if not short_term_growing and not medium_term_growing and trend_score >= 45:
+            considerations.append("Le marché semble stable. Considérer la différenciation pour se démarquer de la concurrence.")
+            
+        if trend_score < 45:
+            considerations.append("Le faible intérêt général suggère un marché de niche. Évaluer la concurrence et les marges.")
+            
+        # Construction du résultat final
+        conclusion['overall_assessment'] = overall_assessment
+        conclusion['recommendation'] = recommendation
+        conclusion['key_insights'] = key_insights
+        conclusion['considerations'] = considerations
+        conclusion['confidence'] = confidence_level
+        
+        return conclusion
+    
+    def _get_cache_file_path(self, keywords: List[str], timeframe: str, geo: str, category: int) -> str:
+        """
+        Génère le chemin du fichier de cache pour une requête spécifique.
+        
+        Args:
+            keywords: Liste des mots-clés
+            timeframe: Période d'analyse
+            geo: Zone géographique
+            category: ID de catégorie
+            
+        Returns:
+            Chemin du fichier de cache
+        """
+        # Tri des mots-clés pour assurer la cohérence du cache quelle que soit leur ordre
+        sorted_keywords = sorted(keywords)
+        
+        # Création d'une chaîne représentant les paramètres de la requête
+        params_str = f"{'-'.join(sorted_keywords)}_{timeframe}_{geo or 'all'}_{category}"
+        
+        # Création d'un hash pour éviter les problèmes de caractères spéciaux dans les noms de fichiers
+        params_hash = hashlib.md5(params_str.encode('utf-8')).hexdigest()
+        
+        # Construction du chemin complet
+        cache_file = os.path.join(self.cache_dir, f"trends_{params_hash}.pkl")
+        
+        return cache_file
+    
+    def _load_from_cache(self, cache_file: str, max_age_hours: int = 24) -> Optional[Dict[str, Any]]:
+        """
+        Charge les données depuis le cache si disponibles et non expirées.
+        
+        Args:
+            cache_file: Chemin du fichier de cache
+            max_age_hours: Âge maximal du cache en heures
+            
+        Returns:
+            Données du cache ou None si non disponibles ou expirées
+        """
+        if not os.path.exists(cache_file):
+            return None
+            
+        # Vérification de l'âge du fichier
+        file_age = time.time() - os.path.getmtime(cache_file)
+        max_age_seconds = max_age_hours * 3600
+        
+        if file_age > max_age_seconds:
+            logger.info(f"Cache expiré ({file_age/3600:.1f} heures) : {cache_file}")
+            return None
+            
+        try:
+            # Chargement du fichier de cache
+            with open(cache_file, 'rb') as f:
+                cached_data = pickle.load(f)
+                
+            logger.info(f"Données chargées depuis le cache : {cache_file}")
+            return cached_data
+            
+        except Exception as e:
+            logger.warning(f"Erreur lors du chargement du cache : {str(e)}")
+            return None
+    
+    def _save_to_cache(self, cache_file: str, data: Dict[str, Any]) -> bool:
+        """
+        Sauvegarde les données dans le cache.
+        
+        Args:
+            cache_file: Chemin du fichier de cache
+            data: Données à mettre en cache
+            
+        Returns:
+            True si la sauvegarde a réussi, False sinon
+        """
+        try:
+            # Conversion des DataFrames pandas en format sérialisable
+            serializable_data = {}
+            
+            for key, value in data.items():
+                if isinstance(value, pd.DataFrame):
+                    # Convertir le DataFrame en dictionnaire
+                    serializable_data[key] = {
+                        'type': 'dataframe',
+                        'index': value.index.tolist(),
+                        'columns': value.columns.tolist(),
+                        'data': value.values.tolist()
+                    }
+                else:
+                    serializable_data[key] = value
+            
+            # Sauvegarde dans le fichier de cache
+            with open(cache_file, 'wb') as f:
+                pickle.dump(serializable_data, f)
+                
+            logger.info(f"Données sauvegardées dans le cache : {cache_file}")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Erreur lors de la sauvegarde du cache : {str(e)}")
+            return False
+
+    def _calculate_trend_metrics(self, interest_over_time: pd.DataFrame, keywords: List[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        Calcule les métriques de tendance à partir des données d'intérêt au fil du temps.
+        
+        Args:
+            interest_over_time: DataFrame contenant les données d'intérêt au fil du temps
+            keywords: Liste des mots-clés analysés
+            
+        Returns:
+            Dictionnaire avec les métriques de tendance pour chaque mot-clé
+        """
+        trend_metrics = {}
+        
+        # Si les données sont vides, retourner un dictionnaire vide
+        if interest_over_time.empty:
+            for keyword in keywords:
+                trend_metrics[keyword] = {
+                    'current_interest': 0,
+                    'average_interest': 0,
+                    'growth_rate': 0,
+                    'volatility': 0,
+                    'momentum': 0,
+                    'trend_score': 0,
+                    'is_growing': False,
+                    'is_seasonal': False
+                }
+            return trend_metrics
+        
+        # Pour chaque mot-clé, calculer les métriques
+        for keyword in keywords:
+            if keyword not in interest_over_time.columns:
+                logger.warning(f"Mot-clé {keyword} non trouvé dans les données d'intérêt")
+                trend_metrics[keyword] = {
+                    'current_interest': 0,
+                    'average_interest': 0,
+                    'growth_rate': 0,
+                    'volatility': 0,
+                    'momentum': 0,
+                    'trend_score': 0,
+                    'is_growing': False,
+                    'is_seasonal': False
+                }
+                continue
+                
+            # Extraction des données pour ce mot-clé
+            keyword_data = interest_over_time[keyword].dropna()
+            
+            if len(keyword_data) < 2:
+                logger.warning(f"Données insuffisantes pour le mot-clé {keyword}")
+                trend_metrics[keyword] = {
+                    'current_interest': keyword_data.iloc[-1] if len(keyword_data) == 1 else 0,
+                    'average_interest': keyword_data.mean() if len(keyword_data) == 1 else 0,
+                    'growth_rate': 0,
+                    'volatility': 0,
+                    'momentum': 0,
+                    'trend_score': 0,
+                    'is_growing': False,
+                    'is_seasonal': False
+                }
+                continue
+            
+            # Calcul de l'intérêt actuel (dernière valeur)
+            current_interest = keyword_data.iloc[-1]
+            
+            # Calcul de l'intérêt moyen
+            average_interest = keyword_data.mean()
+            
+            # Calcul du taux de croissance
+            start_value = keyword_data.iloc[0]
+            end_value = keyword_data.iloc[-1]
+            growth_rate = ((end_value - start_value) / max(1, start_value)) * 100
+            
+            # Calcul de la volatilité (écart-type normalisé)
+            volatility = keyword_data.std() / max(1, average_interest) * 100
+            
+            # Calcul du momentum (moyenne des 3 derniers points vs précédents)
+            momentum = 0
+            if len(keyword_data) >= 6:
+                recent_avg = keyword_data.iloc[-3:].mean()
+                previous_avg = keyword_data.iloc[-6:-3].mean()
+                momentum = ((recent_avg - previous_avg) / max(1, previous_avg)) * 100
+            
+            # Détection de la saisonnalité (simplifié)
+            is_seasonal = False
+            seasonal_score = 0
+            if len(keyword_data) >= 52:  # Au moins un an de données
+                try:
+                    # Test simple d'autocorrélation avec décalage de 52 semaines (1 an)
+                    lag = 52
+                    if len(keyword_data) > lag:
+                        shifted_data = keyword_data.shift(lag).dropna()
+                        correlation = keyword_data.iloc[-len(shifted_data):].corr(shifted_data)
+                        if correlation > 0.5:  # Corrélation forte indique la saisonnalité
+                            is_seasonal = True
+                            seasonal_score = correlation * 100
+                except Exception as e:
+                    logger.warning(f"Erreur lors du calcul de la saisonnalité pour {keyword}: {str(e)}")
+            
+            # Calcul global du score de tendance
+            # Ce score combine plusieurs métriques pour évaluer l'intérêt global pour un mot-clé
+            trend_score = self._calculate_trend_score(
+                current_interest=current_interest,
+                growth_rate=growth_rate,
+                volatility=volatility,
+                momentum=momentum,
+                average_interest=average_interest
+            )
+            
+            # Détection de croissance
+            is_growing = growth_rate > 5 or momentum > 10
+            
+            # Organisation des métriques pour ce mot-clé
+            trend_metrics[keyword] = {
+                'current_interest': current_interest,
+                'average_interest': average_interest,
+                'growth_rate': growth_rate,
+                'volatility': volatility,
+                'momentum': momentum,
+                'is_growing': is_growing,
+                'is_seasonal': is_seasonal,
+                'seasonality_score': seasonal_score,
+                'trend_score': trend_score
+            }
+        
+        return trend_metrics
+    
+    def _calculate_trend_score(
+        self,
+        current_interest: float,
+        growth_rate: float,
+        volatility: float,
+        momentum: float,
+        average_interest: float
+    ) -> float:
+        """
+        Calcule un score de tendance global.
+        
+        Args:
+            current_interest: Intérêt actuel
+            growth_rate: Taux de croissance
+            volatility: Volatilité (plus bas est meilleur)
+            momentum: Momentum récent
+            average_interest: Intérêt moyen
             
         Returns:
             Score global (0-100)
         """
-        # Pondération des périodes (ordre d'importance)
-        period_weights = {
-            'short_term': 0.5,    # Court terme (50%)
-            'medium_term': 0.3,   # Moyen terme (30%)
-            'long_term': 0.2      # Long terme (20%)
-        }
+        # Normalisation des valeurs d'entrée
+        norm_current = min(100, current_interest)
         
-        scores = []
-        weights = []
+        # Normalisation du taux de croissance (-100% à +100% -> 0-100)
+        norm_growth = 50  # Valeur par défaut pour une croissance neutre
+        if growth_rate > 100:
+            norm_growth = 100
+        elif growth_rate > 50:
+            norm_growth = 90
+        elif growth_rate > 25:
+            norm_growth = 80
+        elif growth_rate > 10:
+            norm_growth = 70
+        elif growth_rate > 0:
+            norm_growth = 60
+        elif growth_rate > -10:
+            norm_growth = 40
+        elif growth_rate > -25:
+            norm_growth = 30
+        elif growth_rate > -50:
+            norm_growth = 20
+        else:
+            norm_growth = 10
         
-        for timeframe, results in results_by_timeframe.items():
-            # Vérifier si l'analyse a réussi et contient des métriques
-            if 'error' in results or 'trend_metrics' not in results:
-                continue
-                
-            # Récupérer les métriques pour le premier mot-clé (normalement un seul pour analyze_product)
-            trend_metrics = results.get('trend_metrics', {})
-            if not trend_metrics:
-                continue
-                
-            # Prendre le premier mot-clé (il devrait n'y en avoir qu'un seul)
-            first_keyword = list(trend_metrics.keys())[0]
-            metrics = trend_metrics[first_keyword]
-            
-            # Récupérer le score de tendance
-            trend_score = metrics.get('trend_score', 0)
-            
-            # Poids pour cette période
-            weight = period_weights.get(timeframe, 0.1)  # Valeur par défaut si période inconnue
-            
-            scores.append(trend_score)
-            weights.append(weight)
+        # Normalisation de la volatilité (inversée, moins = mieux)
+        # 0% = 100 points, 100% = 0 points
+        norm_volatility = max(0, 100 - volatility)
         
-        # Si aucun score valide, retourner 0
-        if not scores:
-            return 0
-            
-        # Normalisation des poids
-        total_weight = sum(weights)
-        if total_weight <= 0:
-            return 0
-            
-        normalized_weights = [w / total_weight for w in weights]
+        # Normalisation du momentum
+        norm_momentum = 50  # Valeur par défaut pour un momentum neutre
+        if momentum > 50:
+            norm_momentum = 100
+        elif momentum > 25:
+            norm_momentum = 90
+        elif momentum > 10:
+            norm_momentum = 80
+        elif momentum > 0:
+            norm_momentum = 70
+        elif momentum > -10:
+            norm_momentum = 40
+        elif momentum > -25:
+            norm_momentum = 30
+        else:
+            norm_momentum = 20
         
         # Calcul de la moyenne pondérée
-        overall_score = sum(s * w for s, w in zip(scores, normalized_weights))
+        score = (
+            (norm_current * 0.3) +      # Intérêt actuel: 30%
+            (norm_growth * 0.3) +        # Croissance: 30%
+            (norm_volatility * 0.1) +    # Volatilité: 10%
+            (norm_momentum * 0.3)        # Momentum: 30%
+        )
         
-        return overall_score
-    
-    def _is_product_trending(self, results_by_timeframe: Dict[str, Dict[str, Any]]) -> bool:
-        """
-        Détermine si un produit est en tendance basé sur les analyses.
-        
-        Args:
-            results_by_timeframe: Résultats d'analyse par période
-            
-        Returns:
-            True si le produit est en tendance, False sinon
-        """
-        # Pondération des périodes pour déterminer si un produit est en tendance
-        # Court terme plus important que long terme
-        period_score_thresholds = {
-            'short_term': 70,     # Score minimum pour le court terme
-            'medium_term': 60,    # Score minimum pour le moyen terme
-            'long_term': 50       # Score minimum pour le long terme
-        }
-        
-        period_growth_thresholds = {
-            'short_term': 10,     # Croissance minimum pour le court terme
-            'medium_term': 5,     # Croissance minimum pour le moyen terme
-            'long_term': 0        # Croissance minimum pour le long terme
-        }
-        
-        # Vérification des critères par période
-        trend_scores = {}
-        growth_rates = {}
-        
-        for timeframe, results in results_by_timeframe.items():
-            # Vérifier si l'analyse a réussi et contient des métriques
-            if 'error' in results or 'trend_metrics' not in results:
-                continue
-                
-            # Récupérer les métriques pour le premier mot-clé
-            trend_metrics = results.get('trend_metrics', {})
-            if not trend_metrics:
-                continue
-                
-            # Prendre le premier mot-clé (il devrait n'y en avoir qu'un seul)
-            first_keyword = list(trend_metrics.keys())[0]
-            metrics = trend_metrics[first_keyword]
-            
-            # Récupérer le score de tendance et le taux de croissance
-            trend_scores[timeframe] = metrics.get('trend_score', 0)
-            growth_rates[timeframe] = metrics.get('growth_rate', 0)
-        
-        # Vérification des critères pour chaque période
-        for timeframe in ['short_term', 'medium_term', 'long_term']:
-            if timeframe in trend_scores:
-                score_threshold = period_score_thresholds.get(timeframe, 0)
-                growth_threshold = period_growth_thresholds.get(timeframe, 0)
-                
-                # Pour être "en tendance", au moins une période doit satisfaire les deux critères
-                if (trend_scores[timeframe] >= score_threshold and 
-                    growth_rates[timeframe] >= growth_threshold):
-                    return True
-        
-        # Vérification de la croissance récente avec momentum
-        if 'short_term' in trend_scores and 'medium_term' in trend_scores:
-            # Si le score court terme est supérieur au score moyen terme
-            if (trend_scores['short_term'] > trend_scores['medium_term'] and
-                trend_scores['short_term'] >= 65):
-                return True
-        
-        # Si aucun critère n'est satisfait, le produit n'est pas en tendance
-        return False
+        return score
 
-    def _generate_summary(self, trend_metrics: Dict[str, Dict[str, Any]], related_queries: Dict[str, Dict[str, pd.DataFrame]]) -> Dict[str, Any]:
+    def _is_likely_product(self, query: str) -> bool:
         """
-        Génère un résumé des résultats d'analyse de tendances.
+        Détermine si une requête est probablement un produit et non une requête générique.
         
         Args:
-            trend_metrics: Métriques de tendance calculées
-            related_queries: Requêtes associées récupérées de Google Trends
+            query: Requête à analyser
             
         Returns:
-            Dictionnaire avec le résumé des résultats
+            True si la requête semble être un produit, False sinon
         """
-        summary = {
-            'top_keyword': None,
-            'top_score': 0,
-            'growing_keywords': [],
-            'declining_keywords': [],
-            'seasonal_keywords': [],
-            'related_terms': {},
-            'insights': []
-        }
+        # Mots-clés qui indiquent généralement une requête et non un produit
+        generic_terms = ['comment', 'pourquoi', 'quand', 'quoi', 'qui', 'où', 'quel', 'quelle', 
+                         'how', 'why', 'when', 'what', 'who', 'where', 'which']
         
-        # Identification du mot-clé avec le meilleur score
-        for keyword, metrics in trend_metrics.items():
-            trend_score = metrics.get('trend_score', 0)
+        # Vérification des mots génériques
+        for term in generic_terms:
+            if term in query.lower().split():
+                return False
+                
+        # Vérification de la longueur (les produits ont généralement des noms plus longs)
+        if len(query.split()) <= 1:
+            return False
             
-            if trend_score > summary['top_score']:
-                summary['top_score'] = trend_score
-                summary['top_keyword'] = keyword
-                
-            # Classification des mots-clés par tendance
-            if metrics.get('is_growing', False):
-                summary['growing_keywords'].append(keyword)
-            elif metrics.get('growth_rate', 0) < -5:  # Seuil arbitraire pour "en déclin"
-                summary['declining_keywords'].append(keyword)
-                
-            # Identification des mots-clés saisonniers
-            if metrics.get('is_seasonal', False):
-                summary['seasonal_keywords'].append(keyword)
-                
-            # Génération d'insights pour ce mot-clé
-            keyword_insights = []
-            
-            if metrics.get('is_growing', False) and metrics.get('growth_rate', 0) > 25:
-                keyword_insights.append(f"Forte croissance (+{metrics.get('growth_rate', 0):.1f}%)")
-                
-            if metrics.get('is_seasonal', False):
-                keyword_insights.append(f"Motif saisonnier détecté (score: {metrics.get('seasonality_score', 0):.1f})")
-                
-            if metrics.get('volatility', 0) > 25:
-                keyword_insights.append("Volatilité élevée")
-                
-            if metrics.get('momentum', 0) > 15:
-                keyword_insights.append(f"Momentum positif (+{metrics.get('momentum', 0):.1f}%)")
-            elif metrics.get('momentum', 0) < -15:
-                keyword_insights.append(f"Momentum négatif ({metrics.get('momentum', 0):.1f}%)")
-                
-            if keyword_insights:
-                summary['insights'].append({
-                    'keyword': keyword,
-                    'insights': keyword_insights
-                })
-            
-            # Extraction des termes associés
-            if keyword in related_queries and related_queries[keyword]:
-                top_related = []
-                rising_related = []
-                
-                if 'top' in related_queries[keyword] and not related_queries[keyword]['top'].empty:
-                    top_df = related_queries[keyword]['top']
-                    top_related = top_df.head(5)['query'].tolist() if 'query' in top_df.columns else []
-                    
-                if 'rising' in related_queries[keyword] and not related_queries[keyword]['rising'].empty:
-                    rising_df = related_queries[keyword]['rising']
-                    rising_related = rising_df.head(5)['query'].tolist() if 'query' in rising_df.columns else []
-                    
-                summary['related_terms'][keyword] = {
-                    'top': top_related,
-                    'rising': rising_related
-                }
+        # Un produit a souvent un nom et une caractéristique
+        return True
         
-        # Génération de statistiques générales
-        summary['stats'] = {
-            'total_keywords': len(trend_metrics),
-            'growing_count': len(summary['growing_keywords']),
-            'declining_count': len(summary['declining_keywords']),
-            'seasonal_count': len(summary['seasonal_keywords']),
-            'timestamp': time.time()
-        }
-        
-        return summary
-
-    def _detect_seasonality(self, results_by_timeframe: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def _get_category_keywords(self, category: str = None) -> List[str]:
         """
-        Détecte les motifs saisonniers dans les données.
+        Obtient les mots-clés liés à une catégorie.
         
         Args:
-            results_by_timeframe: Résultats d'analyse par période
+            category: Catégorie de produits
             
         Returns:
-            Dictionnaire avec les informations de saisonnalité
+            Liste de mots-clés liés à la catégorie
         """
-        seasonality_result = {
-            'is_seasonal': False,
-            'seasonality_score': 0,
-            'peak_months': [],
-            'pattern_description': '',
-            'confidence': 'low'
+        if not category:
+            return ["trending products", "best selling products", "popular products"]
+            
+        # Mots-clés spécifiques par catégorie
+        category_keywords = {
+            "fashion": ["fashion trends", "clothing trends", "accessories trends"],
+            "electronics": ["tech gadgets", "electronics trends", "smart devices"],
+            "home": ["home decor trends", "furniture trends", "home improvement"],
+            "beauty": ["beauty products", "skincare trends", "makeup trends"],
+            "fitness": ["fitness equipment", "workout gear", "exercise trends"],
+            "toys": ["toys trends", "games trends", "children gifts"],
+            "jewelry": ["jewelry trends", "watches trends", "accessories"]
         }
         
-        # Vérification si les périodes longues contiennent des données
-        long_term_results = results_by_timeframe.get('long_term', None) or results_by_timeframe.get('five_years', None)
-        
-        if not long_term_results or 'error' in long_term_results:
-            return seasonality_result
-            
-        # Vérifier si les données d'intérêt au fil du temps sont disponibles
-        interest_over_time = long_term_results.get('interest_over_time', pd.DataFrame())
-        
-        if interest_over_time.empty or len(interest_over_time) < 52:  # Au moins un an de données
-            return seasonality_result
-            
-        # Extraction des données du premier mot-clé (normalement un seul pour analyze_product)
-        if len(interest_over_time.columns) == 0:
-            return seasonality_result
-            
-        keyword = interest_over_time.columns[0]
-        keyword_data = interest_over_time[keyword]
-        
-        # Conversion de l'index en datetime si ce n'est pas déjà le cas
-        if not isinstance(interest_over_time.index, pd.DatetimeIndex):
-            try:
-                interest_over_time.index = pd.to_datetime(interest_over_time.index)
-                keyword_data.index = interest_over_time.index
-            except Exception as e:
-                logger.warning(f"Impossible de convertir l'index en datetime: {str(e)}")
-                return seasonality_result
-        
-        try:
-            # Calcul de l'autocorrélation pour détecter la saisonnalité
-            max_lag = min(52, len(keyword_data) // 2)  # Maximum 1 an de lag, ou la moitié des données
-            seasonal_lags = [12, 24, 26, 52]  # Lags correspondant à des motifs saisonniers potentiels
-            seasonal_lag = 0
-            max_correlation = 0.3  # Seuil minimum de corrélation pour considérer comme saisonnier
-            
-            for lag in seasonal_lags:
-                if lag < max_lag:
-                    # Calcul de l'autocorrélation
-                    shifted_data = keyword_data.shift(lag).dropna()
-                    if len(shifted_data) > 10:  # Au moins 10 points de données
-                        correlation = keyword_data.iloc[-len(shifted_data):].corr(shifted_data)
-                        if correlation > max_correlation:
-                            max_correlation = correlation
-                            seasonal_lag = lag
-            
-            # Si un motif saisonnier est détecté
-            if seasonal_lag > 0:
-                seasonality_result['is_seasonal'] = True
-                seasonality_result['seasonality_score'] = max_correlation * 100
+        # Recherche de la correspondance la plus proche
+        for key, keywords in category_keywords.items():
+            if key in category.lower():
+                return [category] + keywords
                 
-                # Détermination de la confiance
-                if max_correlation > 0.7:
-                    seasonality_result['confidence'] = 'high'
-                elif max_correlation > 0.5:
-                    seasonality_result['confidence'] = 'medium'
-                else:
-                    seasonality_result['confidence'] = 'low'
-                
-                # Identification des mois de pic
-                monthly_avg = keyword_data.groupby(keyword_data.index.month).mean()
-                threshold = monthly_avg.mean() + (monthly_avg.std() * 0.5)
-                peak_months_indices = monthly_avg[monthly_avg > threshold].index.tolist()
-                
-                # Conversion des indices de mois en noms de mois
-                month_names = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
-                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-                peak_months = [month_names[i-1] for i in peak_months_indices]
-                seasonality_result['peak_months'] = peak_months
-                
-                # Description du motif
-                if seasonal_lag == 12:
-                    pattern = "mensuel"
-                elif seasonal_lag in [24, 26]:
-                    pattern = "bimensuel"
-                elif seasonal_lag == 52:
-                    pattern = "annuel"
-                else:
-                    pattern = f"périodique ({seasonal_lag} semaines)"
-                    
-                seasonality_result['pattern_description'] = f"Motif {pattern} détecté"
-                if peak_months:
-                    seasonality_result['pattern_description'] += f", avec des pics en {', '.join(peak_months)}"
-                
-        except Exception as e:
-            logger.warning(f"Erreur lors de la détection de saisonnalité: {str(e)}")
-            
-        return seasonality_result
+        # Catégorie non reconnue, retourner des mots-clés génériques avec la catégorie
+        return [category, f"{category} trends", f"{category} products", "popular products"]
