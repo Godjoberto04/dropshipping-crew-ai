@@ -12,7 +12,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
 - **IP**: 163.172.160.102
 - **API**: http://163.172.160.102/api/
 - **Dashboard**: http://163.172.160.102/
-- **Statut actuel**: Agents Data Analyzer, Website Builder et Content Generator opérationnels, Agent Order Manager en développement avec intégration AliExpress finalisée
+- **Statut actuel**: Agents Data Analyzer, Website Builder, Content Generator et Order Manager opérationnels
 
 ## Architecture du système
 
@@ -37,13 +37,13 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
    - Tests unitaires complets
    - Limitations actuelles: Actuellement limité aux descriptions de produits
 
-4. **Order Manager** ⚙️ (développement avancé)
-   - Structure de base en place
-   - Modèles de données principaux implémentés
-   - API REST configurée
-   - Intégration complète avec AliExpress
-   - Intégration partielle avec Shopify
-   - Tests unitaires pour l'intégration AliExpress
+4. **Order Manager** ✅
+   - Gestion complète des commandes e-commerce
+   - Intégration avec les fournisseurs dropshipping (AliExpress, CJ Dropshipping)
+   - API REST complète pour la gestion des commandes
+   - Synchronisation avec Shopify
+   - Suivi des commandes et expéditions
+   - Tests unitaires complets pour les intégrations fournisseurs
 
 5. **Site Updater** 🔜 (planifié)
    - Actualise les prix selon la concurrence
@@ -104,7 +104,7 @@ Le projet utilise une API centralisée qui comprend:
 │   │       ├── theme_manager.py
 │   │       ├── store_setup.py
 │   │       └── navigation.py
-│   ├── content-generator/   ✨ IMPLÉMENTÉ ✨
+│   ├── content-generator/
 │   │   ├── Dockerfile
 │   │   ├── main.py
 │   │   ├── config.py
@@ -126,7 +126,7 @@ Le projet utilise une API centralisée qui comprend:
 │   │   │   ├── __init__.py
 │   │   │   ├── data_analyzer.py
 │   │   │   └── shopify.py
-│   │   └── tests/   ✨ NOUVEAU ✨
+│   │   └── tests/
 │   │       ├── __init__.py
 │   │       ├── test_api_client.py
 │   │       ├── test_claude_client.py
@@ -137,7 +137,7 @@ Le projet utilise une API centralisée qui comprend:
 │   │       ├── test_product_description.py
 │   │       ├── test_product_templates.py
 │   │       └── test_seo_optimizer.py
-│   ├── order-manager/    ✨ NOUVEAU ✨
+│   ├── order-manager/
 │   │   ├── Dockerfile
 │   │   ├── requirements.txt
 │   │   ├── api/
@@ -158,7 +158,8 @@ Le projet utilise une API centralisée qui comprend:
 │   │   │       ├── __init__.py
 │   │   │       ├── base.py
 │   │   │       ├── communicator.py
-│   │   │       └── aliexpress.py  ✨ NOUVEAU ✨
+│   │   │       ├── aliexpress.py
+│   │   │       └── cjdropshipping.py
 │   │   ├── models/
 │   │   │   ├── __init__.py
 │   │   │   ├── order.py
@@ -175,9 +176,10 @@ Le projet utilise une API centralisée qui comprend:
 │   │   ├── notifications/
 │   │   │   ├── __init__.py
 │   │   │   └── notification_manager.py
-│   │   └── tests/    ✨ NOUVEAU ✨
+│   │   └── tests/
 │   │       ├── __init__.py
-│   │       └── test_aliexpress_supplier.py
+│   │       ├── test_aliexpress_supplier.py
+│   │       └── test_cjdropshipping_supplier.py
 │   └── dashboard/
 │       ├── css/
 │       │   └── style.css
@@ -197,7 +199,9 @@ Le projet utilise une API centralisée qui comprend:
 ## Changements récents
 
 ### Mars 2025
-- **NOUVEAU** 🔥 : Implémentation complète de l'intégration AliExpress pour l'agent Order Manager avec tests unitaires
+- **NOUVEAU** 🔥 : Intégration complète de l'agent Order Manager avec support pour AliExpress et CJ Dropshipping
+- **NOUVEAU** 🔥 : Tests unitaires pour les intégrations AliExpress et CJ Dropshipping
+- **NOUVEAU** 🔥 : Documentation détaillée pour l'agent Order Manager et ses intégrations
 - **NOUVEAU** 🔥 : Architecture modulaire pour l'intégration avec les fournisseurs dropshipping
 - **NOUVEAU** 🔥 : Suite complète de tests unitaires pour l'agent Content Generator (intégrations, client API, templates, etc.)
 - **NOUVEAU** 🔥 : Implémentation complète de l'agent Content Generator avec capacité de génération de descriptions de produits optimisées SEO
@@ -230,6 +234,7 @@ Pour plus d'informations, consultez notre [Stratégie d'intégration des ressour
 - Docker et Docker Compose
 - Compte Claude Pro (pour l'API LLM)
 - Compte Shopify Lite (pour l'agent Website Builder)
+- Comptes API AliExpress et CJ Dropshipping (pour l'agent Order Manager)
 
 ### Installation
 
@@ -242,7 +247,7 @@ cd dropshipping-crew-ai
 2. Configurer les variables d'environnement
 ```bash
 cp .env.example .env
-# Éditer le fichier .env avec vos paramètres (clé API Claude, crédentiels Shopify, etc.)
+# Éditer le fichier .env avec vos paramètres (clé API Claude, crédentiels Shopify, crédentiels fournisseurs, etc.)
 ```
 
 3. Déployer les services
@@ -354,7 +359,7 @@ curl -X GET "http://votre-serveur:8000/agents/order-manager/orders/123456789" \
   -H "Content-Type: application/json"
 
 # Rechercher des produits sur AliExpress
-curl -X POST "http://votre-serveur:8000/agents/order-manager/search" \
+curl -X POST "http://votre-serveur:8000/agents/order-manager/suppliers/search" \
   -H "Content-Type: application/json" \
   -d '{
     "supplier": "aliexpress",
@@ -362,31 +367,55 @@ curl -X POST "http://votre-serveur:8000/agents/order-manager/search" \
     "page": 1,
     "limit": 20
   }'
+
+# Rechercher des produits sur CJ Dropshipping
+curl -X POST "http://votre-serveur:8000/agents/order-manager/suppliers/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "supplier": "cjdropshipping",
+    "query": "smartphone accessories",
+    "page": 1,
+    "limit": 20
+  }'
+
+# Créer une commande fournisseur
+curl -X POST "http://votre-serveur:8000/agents/order-manager/supplier-orders" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order_id": "shopify_12345",
+    "supplier": "aliexpress",
+    "product_id": "aliexpress_product_id",
+    "quantity": 1,
+    "shipping_address": {
+      "name": "Client Test",
+      "address1": "123 Test Street",
+      "city": "Test City",
+      "zip": "12345",
+      "country": "FR"
+    }
+  }'
+
+# Vérifier le statut d'expédition
+curl -X GET "http://votre-serveur:8000/agents/order-manager/shipments/tracking-id" \
+  -H "Content-Type: application/json"
 ```
 
 ## Tests unitaires
 
-Le projet dispose maintenant d'une suite complète de tests unitaires pour le service Content Generator et plusieurs autres composants. Pour exécuter les tests :
+Le projet dispose maintenant d'une suite complète de tests unitaires pour les services Content Generator et Order Manager. Pour exécuter les tests :
 
 ```bash
-# Se placer dans le répertoire du service
+# Tests de l'agent Content Generator
 cd services/content-generator
+python -m unittest discover -s tests
 
-# Exécuter tous les tests
+# Tests de l'agent Order Manager
+cd services/order-manager
 python -m unittest discover -s tests
 
 # Exécuter un test spécifique
-python -m unittest tests.test_api_client
-```
-
-Pour les tests de l'agent Order Manager :
-
-```bash
-# Se placer dans le répertoire du service
-cd services/order-manager
-
-# Exécuter les tests
 python -m unittest tests.test_aliexpress_supplier
+python -m unittest tests.test_cjdropshipping_supplier
 ```
 
 Les modules testés comprennent :
@@ -397,6 +426,7 @@ Les modules testés comprennent :
 - Templates spécifiques par niche
 - Optimiseur SEO
 - Intégration AliExpress
+- Intégration CJ Dropshipping
 
 ## Points d'amélioration identifiés
 
@@ -415,11 +445,11 @@ Les modules testés comprennent :
 
 ## Prochaines étapes
 
-1. **Finalisation de l'agent Order Manager**
-   - Compléter l'intégration CJ Dropshipping pour diversifier les fournisseurs
-   - Développer le système de notification des clients
-   - Ajouter le suivi avancé des commandes et expéditions
-   - Améliorer la gestion des erreurs et le système de reprise automatique
+1. **Amélioration de l'agent Order Manager**
+   - Intégration avec d'autres fournisseurs dropshipping
+   - Automatisation complète du cycle de vie des commandes
+   - Système avancé de notifications clients
+   - Dashboard dédié pour le suivi des commandes
 
 2. **Amélioration de l'agent Data Analyzer**
    - Implémentation du plan d'amélioration détaillé (voir [plan complet](docs/plan-data-analyzer-amelioration.md))
@@ -452,6 +482,9 @@ Les modules testés comprennent :
 
 Pour plus de détails, consultez les documents suivants :
 
+- [Guide de l'agent Order Manager](docs/order-manager-guide.md)
+- [Plan de fusion de l'agent Order Manager](docs/order-manager-merge-plan.md)
+- [Vérification post-fusion](docs/verification-post-fusion-order-manager.md)
 - [Plan d'amélioration de l'agent Data Analyzer](docs/plan-data-analyzer-amelioration.md)
 - [Plan d'amélioration de l'agent Website Builder](docs/plan-website-builder-amelioration.md)
 - [Plan d'amélioration de l'API pour l'orchestration](docs/plan-amelioration-api-orchestration.md)
@@ -459,7 +492,6 @@ Pour plus de détails, consultez les documents suivants :
 - [Plan du Content Generator](docs/plan-content-generator.md)
 - [Guide de l'agent Content Generator](docs/content-generator-guide.md)
 - [Guide de l'agent Website Builder](docs/website-builder-guide.md)
-- [Guide de l'agent Order Manager](docs/order-manager-guide.md)
 - [Documentation API](docs/api-doc-suite.md)
 - [Tests de l'agent Content Generator](docs/tests-content-generator.md)
 
@@ -468,20 +500,21 @@ Pour plus de détails, consultez les documents suivants :
 - Infrastructure Scaleway DEV1-M: ~18€/mois
 - API LLM: Utilisation de l'abonnement Claude Pro existant (0€ supplémentaire)
 - Shopify Lite: ~9€/mois
+- APIs fournisseurs (AliExpress, CJ Dropshipping): ~0-20€/mois selon l'utilisation
 - Proxies basiques: 0-10€/mois (optionnel)
-- **Total**: ~27-37€/mois
+- **Total**: ~27-57€/mois
 
 ## Dépannage
 
 Si vous rencontrez des problèmes lors du déploiement :
 
 1. **Problème d'accès à l'API**: Vérifiez que le conteneur est bien démarré avec `docker-compose logs -f api`
-2. **Agent Data Analyzer ou Website Builder ne démarre pas**: Vérifiez les variables d'environnement dans `.env`
+2. **Agent ne démarre pas**: Vérifiez les variables d'environnement dans `.env`
 3. **Erreurs d'API Shopify**: Vérifiez que vos clés et tokens sont corrects et que votre compte Shopify est actif
 4. **Erreurs d'API Claude**: Vérifiez votre clé API Claude et votre abonnement Claude Pro
-5. **Dépendances manquantes**: Reconstruisez les conteneurs avec `docker-compose build --no-cache`
-6. **Tests unitaires qui échouent**: Vérifiez les dépendances et la configuration dans `services/content-generator/tests` ou `services/order-manager/tests`
-7. **Problème de connexion AliExpress**: Vérifiez les clés d'API et les secrets dans les variables d'environnement
+5. **Erreurs d'API fournisseurs**: Vérifiez les clés d'API AliExpress/CJ Dropshipping dans les variables d'environnement
+6. **Dépendances manquantes**: Reconstruisez les conteneurs avec `docker-compose build --no-cache`
+7. **Tests unitaires qui échouent**: Vérifiez les dépendances et la configuration dans les dossiers de tests
 
 ## Contact et support
 
@@ -497,10 +530,10 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 Pour la prochaine session, voici ce qu'il reste à implémenter ou à mettre à jour :
 
-1. Finaliser le développement de l'agent Order Manager:
-   - Implémenter l'intégration avec CJ Dropshipping
-   - Ajouter les webhooks Shopify pour les notifications automatiques
-   - Compléter le système de gestion des livraisons
+1. Perfectionner l'intégration de l'agent Order Manager:
+   - Améliorer l'interface utilisateur pour le suivi des commandes dans le dashboard
+   - Ajouter l'intégration avec d'autres fournisseurs dropshipping
+   - Optimiser la gestion des cas d'erreur et la reprise automatique
 
 2. Commencer la mise en œuvre du plan d'amélioration de l'agent Data Analyzer
 3. Étendre l'agent Content Generator pour les articles de blog

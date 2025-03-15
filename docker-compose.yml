@@ -133,6 +133,39 @@ services:
       - ./services/content-generator:/app
       - ./logs:/app/logs
 
+  order-manager:
+    build:
+      context: ./services/order-manager
+    container_name: ${PROJECT_NAME}-order-manager
+    depends_on:
+      - postgres
+      - redis
+      - api
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_BASE_URL=http://api:8000
+      - AGENT_ID=order-manager
+      - AGENT_VERSION=0.1.0
+      - ORDER_MANAGER_API_SECRET=${ORDER_MANAGER_API_SECRET}
+      - ALIEXPRESS_API_KEY=${ALIEXPRESS_API_KEY}
+      - ALIEXPRESS_API_SECRET=${ALIEXPRESS_API_SECRET}
+      - CJ_DROPSHIPPING_API_KEY=${CJ_DROPSHIPPING_API_KEY}
+      - CJ_DROPSHIPPING_EMAIL=${CJ_DROPSHIPPING_EMAIL}
+      - ORDER_MANAGER_WEBHOOK_SECRET=${ORDER_MANAGER_WEBHOOK_SECRET}
+      - SHOPIFY_ACCESS_TOKEN=${SHOPIFY_ACCESS_TOKEN}
+      - SHOPIFY_STORE_URL=${SHOPIFY_STORE_URL}
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - ./services/order-manager:/app
+      - ./logs:/app/logs
+
 networks:
   backend:
   frontend:
