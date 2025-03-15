@@ -351,6 +351,132 @@ class TrendsAnalyzer:
             error_msg = f"Erreur lors de la comparaison des produits: {str(e)}"
             logger.error(error_msg, exc_info=True)
             raise
+            
+    def _calculate_overall_trend_score(self, results_by_timeframe: Dict[str, Dict[str, Any]]) -> float:
+        """
+        Calcule un score global de tendance basé sur les analyses de différentes périodes.
+        
+        Args:
+            results_by_timeframe: Résultats d'analyse par période
+            
+        Returns:
+            Score global (0-100)
+        """
+        # Pondération des périodes (ordre d'importance)
+        period_weights = {
+            'short_term': 0.5,    # Court terme (50%)
+            'medium_term': 0.3,   # Moyen terme (30%)
+            'long_term': 0.2      # Long terme (20%)
+        }
+        
+        scores = []
+        weights = []
+        
+        for timeframe, results in results_by_timeframe.items():
+            # Vérifier si l'analyse a réussi et contient des métriques
+            if 'error' in results or 'trend_metrics' not in results:
+                continue
+                
+            # Récupérer les métriques pour le premier mot-clé (normalement un seul pour analyze_product)
+            trend_metrics = results.get('trend_metrics', {})
+            if not trend_metrics:
+                continue
+                
+            # Prendre le premier mot-clé (il devrait n'y en avoir qu'un seul)
+            first_keyword = list(trend_metrics.keys())[0]
+            metrics = trend_metrics[first_keyword]
+            
+            # Récupérer le score de tendance
+            trend_score = metrics.get('trend_score', 0)
+            
+            # Poids pour cette période
+            weight = period_weights.get(timeframe, 0.1)  # Valeur par défaut si période inconnue
+            
+            scores.append(trend_score)
+            weights.append(weight)
+        
+        # Si aucun score valide, retourner 0
+        if not scores:
+            return 0
+            
+        # Normalisation des poids
+        total_weight = sum(weights)
+        if total_weight <= 0:
+            return 0
+            
+        normalized_weights = [w / total_weight for w in weights]
+        
+        # Calcul de la moyenne pondérée
+        overall_score = sum(s * w for s, w in zip(scores, normalized_weights))
+        
+        return overall_score
+    
+    def _is_product_trending(self, results_by_timeframe: Dict[str, Dict[str, Any]]) -> bool:
+        """
+        Détermine si un produit est en tendance basé sur les analyses.
+        
+        Args:
+            results_by_timeframe: Résultats d'analyse par période
+            
+        Returns:
+            True si le produit est en tendance, False sinon
+        """
+        # Pondération des périodes pour déterminer si un produit est en tendance
+        # Court terme plus important que long terme
+        period_score_thresholds = {
+            'short_term': 70,     # Score minimum pour le court terme
+            'medium_term': 60,    # Score minimum pour le moyen terme
+            'long_term': 50       # Score minimum pour le long terme
+        }
+        
+        period_growth_thresholds = {
+            'short_term': 10,     # Croissance minimum pour le court terme
+            'medium_term': 5,     # Croissance minimum pour le moyen terme
+            'long_term': 0        # Croissance minimum pour le long terme
+        }
+        
+        # Vérification des critères par période
+        trend_scores = {}
+        growth_rates = {}
+        
+        for timeframe, results in results_by_timeframe.items():
+            # Vérifier si l'analyse a réussi et contient des métriques
+            if 'error' in results or 'trend_metrics' not in results:
+                continue
+                
+            # Récupérer les métriques pour le premier mot-clé
+            trend_metrics = results.get('trend_metrics', {})
+            if not trend_metrics:
+                continue
+                
+            # Prendre le premier mot-clé (il devrait n'y en avoir qu'un seul)
+            first_keyword = list(trend_metrics.keys())[0]
+            metrics = trend_metrics[first_keyword]
+            
+            # Récupérer le score de tendance et le taux de croissance
+            trend_scores[timeframe] = metrics.get('trend_score', 0)
+            growth_rates[timeframe] = metrics.get('growth_rate', 0)
+        
+        # Vérification des critères pour chaque période
+        for timeframe in ['short_term', 'medium_term', 'long_term']:
+            if timeframe in trend_scores:
+                score_threshold = period_score_thresholds.get(timeframe, 0)
+                growth_threshold = period_growth_thresholds.get(timeframe, 0)
+                
+                # Pour être "en tendance", au moins une période doit satisfaire les deux critères
+                if (trend_scores[timeframe] >= score_threshold and 
+                    growth_rates[timeframe] >= growth_threshold):
+                    return True
+        
+        # Vérification de la croissance récente avec momentum
+        if 'short_term' in trend_scores and 'medium_term' in trend_scores:
+            # Si le score court terme est supérieur au score moyen terme
+            if (trend_scores['short_term'] > trend_scores['medium_term'] and
+                trend_scores['short_term'] >= 65):
+                return True
+        
+        # Si aucun critère n'est satisfait, le produit n'est pas en tendance
+        return False
 
     def _generate_summary(self, trend_metrics: Dict[str, Dict[str, Any]], related_queries: Dict[str, Dict[str, pd.DataFrame]]) -> Dict[str, Any]:
         """
