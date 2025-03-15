@@ -173,3 +173,114 @@ class TrendsAnalyzer:
         except Exception as e:
             logger.warning(f"Erreur lors du chargement du cache: {str(e)}")
             return None
+            
+    def analyze_keywords(
+        self, 
+        keywords: Union[str, List[str]], 
+        timeframe: str = 'medium_term',
+        geo: str = None,
+        category: int = 0,
+        use_cache: bool = True,
+        cache_hours: int = 24
+    ) -> Dict[str, Any]:
+        """
+        Analyse des mots-clés en utilisant Google Trends.
+        
+        Args:
+            keywords: Mot-clé unique ou liste de mots-clés (max 5)
+            timeframe: Période d'analyse ('short_term', 'medium_term', 'long_term', 'five_years' ou format PyTrends)
+            geo: Zone géographique (pays, région)
+            category: ID de catégorie Google Trends
+            use_cache: Utiliser le cache si disponible
+            cache_hours: Âge maximal du cache en heures
+            
+        Returns:
+            Dictionnaire avec les résultats d'analyse
+            
+        Raises:
+            ValueError: Si les paramètres sont invalides
+            Exception: Si l'analyse échoue
+        """
+        # Validation et normalisation des mots-clés
+        if isinstance(keywords, str):
+            keywords = [keywords]
+            
+        if not keywords:
+            raise ValueError("Au moins un mot-clé est requis")
+            
+        # Google Trends limite à 5 mots-clés
+        if len(keywords) > 5:
+            logger.warning(f"Plus de 5 mots-clés fournis. Seuls les 5 premiers seront utilisés.")
+            keywords = keywords[:5]
+            
+        # Validation du timeframe
+        if timeframe in self.timeframes:
+            timeframe_str = self.timeframes[timeframe]
+        else:
+            timeframe_str = timeframe
+            
+        # Paramètres par défaut
+        geo = geo or self.geo
+        
+        # Vérifier le cache si demandé
+        cache_file = self._get_cache_file_path(keywords, timeframe_str, geo, category)
+        if use_cache:
+            cached_data = self._load_from_cache(cache_file, max_age_hours=cache_hours)
+            if cached_data:
+                return cached_data
+        
+        logger.info(f"Analyse de {len(keywords)} mots-clés: {', '.join(keywords)}")
+        logger.info(f"Paramètres: timeframe={timeframe_str}, geo={geo}, category={category}")
+        
+        try:
+            # Construction de la requête
+            self.pytrends.build_payload(
+                kw_list=keywords,
+                cat=category,
+                timeframe=timeframe_str,
+                geo=geo
+            )
+            
+            # Récupération des données d'intérêt au fil du temps
+            interest_over_time = self.pytrends.interest_over_time()
+            
+            # Récupération des requêtes associées
+            related_queries = self.pytrends.related_queries()
+            
+            # Récupération des sujets associés
+            related_topics = self.pytrends.related_topics()
+            
+            # Récupération de l'intérêt par région
+            try:
+                interest_by_region = self.pytrends.interest_by_region(resolution='COUNTRY')
+            except Exception as e:
+                logger.warning(f"Erreur lors de la récupération de l'intérêt par région: {str(e)}")
+                interest_by_region = pd.DataFrame()
+                
+            # Calcul des métriques de tendance
+            trend_metrics = self._calculate_trend_metrics(interest_over_time, keywords)
+            
+            # Organisation des résultats
+            results = {
+                'interest_over_time': interest_over_time,
+                'related_queries': related_queries,
+                'related_topics': related_topics,
+                'interest_by_region': interest_by_region,
+                'trend_metrics': trend_metrics,
+                'summary': self._generate_summary(trend_metrics, related_queries)
+            }
+            
+            # Mise en cache des résultats
+            if use_cache:
+                self._save_to_cache(cache_file, results)
+                
+            return results
+            
+        except ResponseError as e:
+            error_msg = f"Erreur de l'API Google Trends: {str(e)}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
+        except Exception as e:
+            error_msg = f"Erreur lors de l'analyse des tendances: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            raise
