@@ -1,82 +1,130 @@
-# Module d'analyse de tendances (PyTrends)
+# Module d'analyse des tendances Google Trends
 
-Ce module est responsable de l'analyse des tendances de produits et de mots-clés via Google Trends. Il fait partie de l'agent Data Analyzer du projet dropshipping-crew-ai.
+Ce module permet d'analyser les tendances de recherche Google pour identifier les produits populaires et émergents pour le dropshipping, ainsi que pour évaluer le potentiel des produits sur le long terme.
 
 ## Fonctionnalités
 
-- **Analyse de mots-clés** : Évalue l'intérêt pour des mots-clés sur différentes périodes et régions
-- **Analyse de produits** : Analyse complète d'un produit pour déterminer son potentiel
-- **Comparaison de produits** : Compare l'intérêt pour plusieurs produits
-- **Détection de produits en tendance** : Identifie les produits en forte croissance
-- **Détection de saisonnalité** : Détecte les motifs saisonniers dans les données
-
-## Architecture
-
-Le module est construit autour de la classe `TrendsAnalyzer` qui encapsule la bibliothèque PyTrends et ajoute des fonctionnalités supplémentaires :
-
-- **Analyse avancée** : Calcul de scores de tendance, détection de saisonnalité, etc.
-- **Mise en cache** : Sauvegarde et chargement des résultats pour optimiser les performances
-- **Gestion des erreurs** : Robustesse face aux limitations de l'API Google Trends
-- **Organisation des données** : Structuration des données pour faciliter leur exploitation
+- **Analyse de mots-clés** : Évaluation des tendances de recherche pour des mots-clés sur différentes périodes
+- **Analyse de produits** : Évaluation complète du potentiel d'un produit avec analyses court, moyen et long terme
+- **Comparaison de produits** : Comparaison directe de plusieurs produits en termes de tendances
+- **Détection de produits en tendance** : Identification des produits émergents dans une catégorie spécifique
+- **Détection de saisonnalité** : Analyse des motifs saisonniers pour les produits
+- **Système de cache** : Optimisation des performances grâce au cache des requêtes Google Trends
 
 ## Utilisation
+
+### Initialisation
 
 ```python
 from data_sources.trends.trends_analyzer import TrendsAnalyzer
 
-# Création d'une instance de l'analyseur
-analyzer = TrendsAnalyzer(hl="fr", geo="FR")
+# Initialisation avec paramètres par défaut
+analyzer = TrendsAnalyzer()
 
-# Analyse de mots-clés
-keywords_results = analyzer.analyze_keywords(
-    keywords=["smartphone", "tablette"],
-    timeframe="medium_term"
+# Initialisation avec paramètres personnalisés
+analyzer_custom = TrendsAnalyzer(
+    hl='en-US',  # Langue
+    tz=360,      # Fuseau horaire
+    geo='US',    # Région par défaut
+    proxies={'https': 'http://proxy.example.com:8080'}  # Proxy optionnel
 )
+```
 
+### Analyse de mots-clés
+
+```python
+# Analyse d'un mot-clé unique
+results = analyzer.analyze_keywords('smartphone')
+
+# Analyse de plusieurs mots-clés (maximum 5)
+results = analyzer.analyze_keywords(['écouteurs bluetooth', 'casque sans fil', 'montre connectée'])
+
+# Analyse avec période personnalisée
+results = analyzer.analyze_keywords('smartphone', timeframe='long_term')  # Analyse sur 12 mois
+
+# Analyse avec région spécifique
+results = analyzer.analyze_keywords('smartphone', geo='DE')  # Analyse pour l'Allemagne
+```
+
+### Analyse complète de produit
+
+```python
 # Analyse complète d'un produit
+product_analysis = analyzer.analyze_product('Écouteurs Bluetooth sans fil')
+
+# Analyse avec mots-clés associés
 product_analysis = analyzer.analyze_product(
-    product_name="écouteurs bluetooth",
-    product_keywords=["écouteurs sans fil", "casque audio"],
-    timeframes=["short_term", "medium_term", "long_term"]
+    'Écouteurs Bluetooth sans fil', 
+    product_keywords=['écouteurs TWS', 'écouteurs sans fil']
 )
 
-# Récupération des produits en tendance
-trending_products = analyzer.get_rising_products(category=0, geo="FR")
+# Accès aux données d'analyse
+trend_score = product_analysis['overall_trend_score']
+is_trending = product_analysis['is_trending']
+seasonality = product_analysis['seasonality']
+conclusion = product_analysis['conclusion']
+
+# Recommandation du produit
+recommendation = conclusion['recommendation']
 ```
 
-## Métriques calculées
+### Comparaison de produits
 
-Le module calcule plusieurs métriques pour chaque mot-clé ou produit :
+```python
+# Comparaison de plusieurs produits
+comparison = analyzer.compare_products(['écouteurs bluetooth', 'casque sans fil', 'montre connectée'])
 
-- **Intérêt actuel** : Niveau d'intérêt actuel (0-100)
-- **Taux de croissance** : Évolution de l'intérêt en pourcentage
-- **Momentum** : Dynamique récente (comparaison des dernières périodes)
-- **Volatilité** : Stabilité de l'intérêt dans le temps
-- **Score de tendance** : Score global (0-100) combinant les métriques précédentes
-- **Saisonnalité** : Détection et quantification des motifs saisonniers
-
-## Configuration
-
-Le module utilise les paramètres suivants (configurables dans `.env`) :
-
-- **PYTRENDS_HL** : Langue pour Google Trends (fr, en-US, etc.)
-- **PYTRENDS_TZ** : Fuseau horaire (-360 à 360)
-- **PYTRENDS_GEO** : Pays par défaut (FR, US, etc.)
-- **PROXY_ENABLED** : Activer l'utilisation d'un proxy (True/False)
-- **PROXY_URL** : URL du proxy (http://user:pass@host:port)
-
-## Tests
-
-Le module est couvert par des tests unitaires complets :
-
-```bash
-# Exécution des tests pour le module TrendsAnalyzer
-python -m unittest tests.test_trends_analyzer
+# Accès aux résultats de la comparaison
+ranked_products = comparison['ranked_products']
+top_product = comparison['top_product']
 ```
 
-## Limites et considérations
+### Détection de produits en tendance
 
-- L'API Google Trends impose des limites sur le nombre de requêtes
-- Les données sont relatives et non absolues
-- La précision varie selon la popularité des termes recherchés
-- Un système de cache est implémenté pour éviter les requêtes redondantes
+```python
+# Détection des produits en tendance dans une catégorie
+trending_products = analyzer.get_rising_products(category='electronic')
+
+# Détection dans une région spécifique
+trending_products_fr = analyzer.get_rising_products(category='fashion', geo='FR')
+
+# Limitation du nombre de résultats
+top5_trending = analyzer.get_rising_products(limit=5)
+```
+
+## Données d'intérêt et métriques
+
+L'analyse des mots-clés retourne les données suivantes :
+
+- **interest_over_time** : Évolution de l'intérêt dans le temps
+- **related_queries** : Requêtes associées (top et en croissance)
+- **related_topics** : Sujets associés (top et en croissance)
+- **interest_by_region** : Répartition de l'intérêt par région
+- **trend_metrics** : Métriques calculées pour chaque mot-clé
+  - *current_interest* : Niveau d'intérêt actuel
+  - *average_interest* : Niveau d'intérêt moyen
+  - *growth_rate* : Taux de croissance
+  - *volatility* : Instabilité de l'intérêt
+  - *momentum* : Élan récent 
+  - *is_growing* : Indicateur de croissance
+  - *is_seasonal* : Indicateur de saisonnalité
+  - *trend_score* : Score global d'intérêt (0-100)
+
+## Système de cache
+
+Le module utilise un système de cache pour optimiser les performances et limiter les requêtes à l'API Google Trends. Les résultats sont mis en cache pendant 24 heures par défaut, mais cette durée peut être modifiée.
+
+```python
+# Analyse avec cache personnalisé (48 heures)
+results = analyzer.analyze_keywords('smartphone', cache_hours=48)
+
+# Analyse sans cache
+results = analyzer.analyze_keywords('smartphone', use_cache=False)
+```
+
+## Notes importantes
+
+- Google Trends limite les requêtes à 5 mots-clés par analyse.
+- Des quotas peuvent s'appliquer aux requêtes Google Trends, d'où l'importance du cache.
+- Les scores générés sont relatifs et ne représentent pas des volumes de recherche absolus.
+- La détection de saisonnalité nécessite au moins 1 an de données.
