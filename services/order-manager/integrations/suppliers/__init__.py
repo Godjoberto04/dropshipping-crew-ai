@@ -1,13 +1,27 @@
+#!/usr/bin/env python3
 """
-Module contenant les intégrations avec les fournisseurs dropshipping.
+Initialisation du module d'intégration avec les fournisseurs dropshipping
+Fait partie du projet Dropshipping Crew AI
 
 Ce module fournit des classes pour interagir avec différents fournisseurs
 de dropshipping comme AliExpress et CJ Dropshipping.
 """
 
 from typing import Dict, Type
+from .communicator import SupplierCommunicator
+from .base import SupplierInterface, OrderResult
 from .aliexpress import AliExpressSupplier
-from .cj_dropshipping import CJDropshippingSupplier
+from .cjdropshipping import CJDropshippingSupplier
+
+__all__ = [
+    'SupplierCommunicator',
+    'SupplierInterface',
+    'OrderResult',
+    'AliExpressSupplier',
+    'CJDropshippingSupplier',
+    'get_supplier',
+    'SUPPLIERS'
+]
 
 # Registre des fournisseurs disponibles
 SUPPLIERS: Dict[str, Type] = {
