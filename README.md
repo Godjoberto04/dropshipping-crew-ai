@@ -22,7 +22,10 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
    - Analyse le marché et les concurrents
    - Identifie les produits à fort potentiel
    - Génère des rapports d'analyse
-   - Limitations actuelles: Analyse superficielle, sources de données limitées, absence de modèles prédictifs avancés
+   - **MISE À JOUR MARS 15** 🔥 : Intégration de l'analyse Google Trends (PyTrends) avec détection de tendances et saisonnalité
+   - **MISE À JOUR MARS 15** 🔥 : Ajout de la comparaison de produits et détection de produits en croissance
+   - **MISE À JOUR MARS 15** 🔥 : Système avancé de cache pour optimiser les performances
+   - Limitations en cours de résolution: Sources de données limitées, modèles prédictifs à améliorer
 
 2. **Website Builder** ✅
    - Configure et personnalise le site Shopify
@@ -200,6 +203,10 @@ Le projet utilise une API centralisée qui comprend:
 ## Changements récents
 
 ### Mars 2025
+- **NOUVEAU** 🔥 : Implémentation des méthodes d'analyse de tendances avancées avec PyTrends dans l'agent Data Analyzer
+- **NOUVEAU** 🔥 : Ajout des fonctionnalités de comparaison de produits et de détection de produits en croissance au Data Analyzer
+- **NOUVEAU** 🔥 : Amélioration du système de détection de saisonnalité pour les produits dans le Data Analyzer
+- **NOUVEAU** 🔥 : Système de cache optimisé pour l'agent Data Analyzer
 - **NOUVEAU** 🔥 : Intégration complète de l'agent Order Manager avec support pour AliExpress et CJ Dropshipping
 - **NOUVEAU** 🔥 : Tests unitaires pour les intégrations AliExpress et CJ Dropshipping
 - **NOUVEAU** 🔥 : Documentation détaillée pour l'agent Order Manager et ses intégrations
@@ -281,6 +288,34 @@ curl -X POST "http://votre-serveur:8000/agents/data-analyzer/analyze" \
     "urls": ["https://example-shop.com/category/accessories"],
     "market_segment": "smartphone accessories",
     "min_margin": 30.0
+  }'
+```
+
+Pour comparer plusieurs produits :
+
+```bash
+# Exemple avec curl
+curl -X POST "http://votre-serveur:8000/agents/data-analyzer/action" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "compare_products",
+    "products": ["écouteurs bluetooth", "casque sans fil", "montre connectée"],
+    "timeframe": "medium_term",
+    "geo": "FR"
+  }'
+```
+
+Pour identifier les produits en croissance :
+
+```bash
+# Exemple avec curl
+curl -X POST "http://votre-serveur:8000/agents/data-analyzer/action" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "get_rising_products",
+    "category": 0,
+    "geo": "FR",
+    "limit": 10
   }'
 ```
 
@@ -454,17 +489,17 @@ Les modules testés comprennent :
 
 ## Prochaines étapes
 
-1. **Amélioration de l'agent Order Manager**
+1. **Poursuite de l'amélioration de l'agent Data Analyzer**
+   - Ajouter des tests unitaires pour les fonctions d'analyse de tendances
+   - Intégrer les API SEO (SEMrush/Ahrefs) pour enrichir les données
+   - Finaliser le système de scoring multicritères pondéré
+   - Compléter les mécanismes de validation et d'apprentissage
+
+2. **Amélioration de l'agent Order Manager**
    - Intégration avec d'autres fournisseurs dropshipping
    - Automatisation complète du cycle de vie des commandes
    - Système avancé de notifications clients
    - Dashboard dédié pour le suivi des commandes
-
-2. **Amélioration de l'agent Data Analyzer**
-   - Implémentation du plan d'amélioration détaillé (voir [plan complet](docs/plan-data-analyzer-amelioration.md))
-   - Intégration de PyTrends pour l'analyse de tendances Google
-   - Développement du système de scoring multicritères pondéré
-   - Ajout des mécanismes de validation et d'apprentissage
 
 3. **Amélioration de l'agent Website Builder**
    - Implémentation du plan d'amélioration (voir [plan complet](docs/plan-website-builder-amelioration.md))
@@ -540,12 +575,17 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de
 
 Pour la prochaine session, voici ce qu'il reste à implémenter ou à mettre à jour :
 
-1. Perfectionner l'intégration de l'agent Order Manager:
+1. **Compléter l'amélioration de l'agent Data Analyzer** :
+   - Ajouter des tests unitaires pour les fonctions d'analyse de tendances
+   - Intégrer les API SEO (SEMrush/Ahrefs) selon le plan
+   - Développer le système de scoring multicritères pondéré
+   - Mettre en œuvre les fonctionnalités d'analyse plus avancées (analyse de séries temporelles)
+
+2. **Perfectionner l'intégration de l'agent Order Manager** :
    - Améliorer l'interface utilisateur pour le suivi des commandes dans le dashboard
    - Ajouter l'intégration avec d'autres fournisseurs dropshipping
    - Optimiser la gestion des cas d'erreur et la reprise automatique
 
-2. Commencer la mise en œuvre du plan d'amélioration de l'agent Data Analyzer
-3. Étendre l'agent Content Generator pour les articles de blog
-4. Implémenter le moteur de workflow dans l'API d'orchestration
-5. Planifier l'architecture de l'agent Site Updater
+3. **Étendre l'agent Content Generator** pour les articles de blog
+4. **Implémenter le moteur de workflow** dans l'API d'orchestration
+5. **Planifier l'architecture** de l'agent Site Updater
