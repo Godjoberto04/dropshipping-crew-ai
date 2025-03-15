@@ -337,3 +337,163 @@ class TrendsAnalyzer:
         except Exception as e:
             logger.warning(f"Erreur lors de la détection de saisonnalité: {str(e)}", exc_info=True)
             return seasonality_result
+
+    def _generate_product_conclusion(self, results_by_timeframe: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Génère une conclusion globale pour l'analyse d'un produit.
+        
+        Args:
+            results_by_timeframe: Résultats d'analyse par période
+            
+        Returns:
+            Dictionnaire avec les conclusions
+        """
+        conclusion = {
+            'overall_assessment': '',
+            'recommendation': '',
+            'key_insights': [],
+            'considerations': [],
+            'confidence': 'medium'
+        }
+        
+        # Variables de synthèse
+        short_term_growing = False
+        medium_term_growing = False
+        is_seasonal = False
+        seasonality_info = {}
+        trend_score = 0
+        
+        # Vérification des périodes et extraction des métriques clés
+        for timeframe, results in results_by_timeframe.items():
+            if 'error' in results or 'trend_metrics' not in results:
+                continue
+                
+            trend_metrics = results.get('trend_metrics', {})
+            if not trend_metrics:
+                continue
+                
+            # Prendre le premier mot-clé (normalement un seul pour analyze_product)
+            keyword = list(trend_metrics.keys())[0]
+            metrics = trend_metrics[keyword]
+            
+            if timeframe == 'short_term':
+                short_term_growing = metrics.get('is_growing', False)
+                
+            if timeframe == 'medium_term':
+                medium_term_growing = metrics.get('is_growing', False)
+                
+            if timeframe in ('long_term', 'five_years'):
+                is_seasonal = metrics.get('is_seasonal', False)
+                if is_seasonal:
+                    seasonality_info = {
+                        'peak_months': results_by_timeframe.get('seasonality', {}).get('peak_months', []),
+                        'score': metrics.get('seasonality_score', 0)
+                    }
+        
+        # Récupération du score de tendance global (déjà calculé)
+        trend_score = results_by_timeframe.get('overall_trend_score', 0)
+        if not isinstance(trend_score, (int, float)):
+            try:
+                trend_score = float(trend_score)
+            except (ValueError, TypeError):
+                trend_score = 0
+                
+        # Détermination du niveau de confiance
+        confidence_level = 'medium'  # Valeur par défaut
+        analysis_count = sum(1 for r in results_by_timeframe.values() if 'error' not in r)
+        if analysis_count >= 3:
+            confidence_level = 'high'
+        elif analysis_count <= 1:
+            confidence_level = 'low'
+            
+        # Génération de l'évaluation globale
+        overall_assessment = ""
+        if trend_score >= 75:
+            overall_assessment = "Produit à fort potentiel avec un intérêt soutenu."
+        elif trend_score >= 60:
+            overall_assessment = "Produit avec un bon potentiel et un intérêt significatif."
+        elif trend_score >= 45:
+            overall_assessment = "Produit avec un potentiel modéré et un intérêt stable."
+        elif trend_score >= 30:
+            overall_assessment = "Produit avec un potentiel limité et un intérêt faible."
+        else:
+            overall_assessment = "Produit à faible potentiel avec un intérêt minimal."
+            
+        # Génération de la recommandation
+        recommendation = ""
+        if trend_score >= 75 and short_term_growing:
+            recommendation = "Fortement recommandé pour le dropshipping. Ce produit montre un fort intérêt et une tendance croissante."
+        elif trend_score >= 60 and (short_term_growing or medium_term_growing):
+            recommendation = "Recommandé pour le dropshipping. Ce produit présente un bon niveau d'intérêt et une tendance positive."
+        elif trend_score >= 60 and is_seasonal:
+            peak_months_str = ", ".join(seasonality_info.get('peak_months', []))
+            recommendation = f"Recommandé pour le dropshipping saisonnier. Ce produit présente un fort intérêt saisonnier, particulièrement en {peak_months_str}."
+        elif trend_score >= 45:
+            recommendation = "Peut être considéré pour le dropshipping avec prudence. Ce produit présente un intérêt modéré."
+        else:
+            recommendation = "Non recommandé pour le dropshipping. Ce produit présente un intérêt insuffisant pour être rentable."
+            
+        # Génération des insights clés
+        key_insights = []
+        
+        if short_term_growing and medium_term_growing:
+            key_insights.append("Croissance soutenue sur le court et moyen terme, indiquant une tendance solide.")
+        elif short_term_growing:
+            key_insights.append("Croissance récente, potentiellement une tendance émergente.")
+        elif not short_term_growing and not medium_term_growing and trend_score >= 60:
+            key_insights.append("Intérêt stable et significatif, indiquant un produit établi.")
+            
+        if is_seasonal:
+            peak_months_str = ", ".join(seasonality_info.get('peak_months', []))
+            key_insights.append(f"Produit saisonnier avec des pics d'intérêt en {peak_months_str}.")
+            
+        # Génération des considérations
+        considerations = []
+        
+        if is_seasonal:
+            considerations.append("Planifier les stocks et le marketing en fonction de la saisonnalité identifiée.")
+            
+        if short_term_growing and not medium_term_growing:
+            considerations.append("La croissance récente pourrait être temporaire. Surveiller l'évolution avant d'investir massivement.")
+            
+        if not short_term_growing and not medium_term_growing and trend_score >= 45:
+            considerations.append("Le marché semble stable. Considérer la différenciation pour se démarquer de la concurrence.")
+            
+        if trend_score < 45:
+            considerations.append("Le faible intérêt général suggère un marché de niche. Évaluer la concurrence et les marges.")
+            
+        # Construction du résultat final
+        conclusion['overall_assessment'] = overall_assessment
+        conclusion['recommendation'] = recommendation
+        conclusion['key_insights'] = key_insights
+        conclusion['considerations'] = considerations
+        conclusion['confidence'] = confidence_level
+        
+        return conclusion
+    
+    def _get_cache_file_path(self, keywords: List[str], timeframe: str, geo: str, category: int) -> str:
+        """
+        Génère le chemin du fichier de cache pour une requête spécifique.
+        
+        Args:
+            keywords: Liste des mots-clés
+            timeframe: Période d'analyse
+            geo: Zone géographique
+            category: ID de catégorie
+            
+        Returns:
+            Chemin du fichier de cache
+        """
+        # Tri des mots-clés pour assurer la cohérence du cache quelle que soit leur ordre
+        sorted_keywords = sorted(keywords)
+        
+        # Création d'une chaîne représentant les paramètres de la requête
+        params_str = f"{'-'.join(sorted_keywords)}_{timeframe}_{geo or 'all'}_{category}"
+        
+        # Création d'un hash pour éviter les problèmes de caractères spéciaux dans les noms de fichiers
+        params_hash = hashlib.md5(params_str.encode('utf-8')).hexdigest()
+        
+        # Construction du chemin complet
+        cache_file = os.path.join(self.cache_dir, f"trends_{params_hash}.pkl")
+        
+        return cache_file
