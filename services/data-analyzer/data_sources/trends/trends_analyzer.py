@@ -239,3 +239,312 @@ class TrendsAnalyzer:
         if len(product_keywords) > 0:
             for keyword in product_keywords[:4]:  # Limité à 4 pour éviter trop de requêtes
                 try:
+                    keyword_results = self.analyze_keywords(
+                        keywords=[keyword],
+                        timeframe='medium_term',
+                        geo=geo
+                    )
+                    related_keywords_analysis[keyword] = keyword_results
+                except Exception as e:
+                    logger.warning(f"Erreur lors de l'analyse du mot-clé {keyword}: {str(e)}")
+        
+        # Création d'un rapport complet
+        product_analysis = {
+            'product_name': product_name,
+            'keywords': unique_keywords,
+            'analysis_by_timeframe': results_by_timeframe,
+            'related_keywords_analysis': related_keywords_analysis,
+            'overall_trend_score': self._calculate_overall_trend_score(results_by_timeframe),
+            'is_trending': self._is_product_trending(results_by_timeframe),
+            'seasonality': self._detect_seasonality(results_by_timeframe),
+            'conclusion': self._generate_product_conclusion(results_by_timeframe)
+        }
+        
+        return product_analysis
+
+    def compare_products(
+        self,
+        products: List[str],
+        timeframe: str = 'medium_term',
+        geo: str = None,
+        category: int = 0,
+        use_cache: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Compare plusieurs produits sur la base de leurs tendances.
+        
+        Args:
+            products: Liste des noms de produits à comparer (max 5)
+            timeframe: Période d'analyse
+            geo: Zone géographique
+            category: ID de catégorie Google Trends
+            use_cache: Utiliser le cache si disponible
+            
+        Returns:
+            Dictionnaire avec les résultats de la comparaison
+            
+        Raises:
+            ValueError: Si les paramètres sont invalides
+            Exception: Si la comparaison échoue
+        """
+        # Validation des paramètres
+        if not products:
+            raise ValueError("Au moins un produit est requis")
+            
+        if len(products) < 2:
+            raise ValueError("Au moins deux produits sont nécessaires pour une comparaison")
+            
+        if len(products) > 5:
+            logger.warning("Plus de 5 produits fournis. Seuls les 5 premiers seront comparés.")
+            products = products[:5]
+        
+        logger.info(f"Comparaison de {len(products)} produits: {', '.join(products)}")
+        
+        try:
+            # Utilisation de la fonction d'analyse de mots-clés existante
+            analysis_results = self.analyze_keywords(
+                keywords=products,
+                timeframe=timeframe,
+                geo=geo,
+                category=category,
+                use_cache=use_cache
+            )
+            
+            # Extraction des métriques de tendance pour la comparaison
+            trend_metrics = analysis_results.get('trend_metrics', {})
+            
+            # Création d'un classement des produits
+            ranked_products = []
+            for product, metrics in trend_metrics.items():
+                ranked_products.append({
+                    'name': product,
+                    'trend_score': metrics.get('trend_score', 0),
+                    'current_interest': metrics.get('current_interest', 0),
+                    'growth_rate': metrics.get('growth_rate', 0),
+                    'is_growing': metrics.get('is_growing', False),
+                    'is_seasonal': metrics.get('is_seasonal', False)
+                })
+            
+            # Tri des produits par score de tendance (du plus élevé au plus bas)
+            ranked_products.sort(key=lambda x: x['trend_score'], reverse=True)
+            
+            # Ajout des données d'intérêt au fil du temps pour visualisation
+            interest_over_time = {}
+            if not analysis_results.get('interest_over_time', pd.DataFrame()).empty:
+                for product in products:
+                    if product in analysis_results['interest_over_time'].columns:
+                        interest_over_time[product] = analysis_results['interest_over_time'][product].tolist()
+            
+            # Construction du résultat de la comparaison
+            comparison_result = {
+                'ranked_products': ranked_products,
+                'interest_over_time': interest_over_time,
+                'analysis_period': timeframe,
+                'timestamp': time.time(),
+                'top_product': ranked_products[0]['name'] if ranked_products else None,
+                'product_trends': {p['name']: {'score': p['trend_score'], 'growing': p['is_growing']} for p in ranked_products}
+            }
+            
+            return comparison_result
+            
+        except Exception as e:
+            error_msg = f"Erreur lors de la comparaison des produits: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            raise
+
+    def _generate_summary(self, trend_metrics: Dict[str, Dict[str, Any]], related_queries: Dict[str, Dict[str, pd.DataFrame]]) -> Dict[str, Any]:
+        """
+        Génère un résumé des résultats d'analyse de tendances.
+        
+        Args:
+            trend_metrics: Métriques de tendance calculées
+            related_queries: Requêtes associées récupérées de Google Trends
+            
+        Returns:
+            Dictionnaire avec le résumé des résultats
+        """
+        summary = {
+            'top_keyword': None,
+            'top_score': 0,
+            'growing_keywords': [],
+            'declining_keywords': [],
+            'seasonal_keywords': [],
+            'related_terms': {},
+            'insights': []
+        }
+        
+        # Identification du mot-clé avec le meilleur score
+        for keyword, metrics in trend_metrics.items():
+            trend_score = metrics.get('trend_score', 0)
+            
+            if trend_score > summary['top_score']:
+                summary['top_score'] = trend_score
+                summary['top_keyword'] = keyword
+                
+            # Classification des mots-clés par tendance
+            if metrics.get('is_growing', False):
+                summary['growing_keywords'].append(keyword)
+            elif metrics.get('growth_rate', 0) < -5:  # Seuil arbitraire pour "en déclin"
+                summary['declining_keywords'].append(keyword)
+                
+            # Identification des mots-clés saisonniers
+            if metrics.get('is_seasonal', False):
+                summary['seasonal_keywords'].append(keyword)
+                
+            # Génération d'insights pour ce mot-clé
+            keyword_insights = []
+            
+            if metrics.get('is_growing', False) and metrics.get('growth_rate', 0) > 25:
+                keyword_insights.append(f"Forte croissance (+{metrics.get('growth_rate', 0):.1f}%)")
+                
+            if metrics.get('is_seasonal', False):
+                keyword_insights.append(f"Motif saisonnier détecté (score: {metrics.get('seasonality_score', 0):.1f})")
+                
+            if metrics.get('volatility', 0) > 25:
+                keyword_insights.append("Volatilité élevée")
+                
+            if metrics.get('momentum', 0) > 15:
+                keyword_insights.append(f"Momentum positif (+{metrics.get('momentum', 0):.1f}%)")
+            elif metrics.get('momentum', 0) < -15:
+                keyword_insights.append(f"Momentum négatif ({metrics.get('momentum', 0):.1f}%)")
+                
+            if keyword_insights:
+                summary['insights'].append({
+                    'keyword': keyword,
+                    'insights': keyword_insights
+                })
+            
+            # Extraction des termes associés
+            if keyword in related_queries and related_queries[keyword]:
+                top_related = []
+                rising_related = []
+                
+                if 'top' in related_queries[keyword] and not related_queries[keyword]['top'].empty:
+                    top_df = related_queries[keyword]['top']
+                    top_related = top_df.head(5)['query'].tolist() if 'query' in top_df.columns else []
+                    
+                if 'rising' in related_queries[keyword] and not related_queries[keyword]['rising'].empty:
+                    rising_df = related_queries[keyword]['rising']
+                    rising_related = rising_df.head(5)['query'].tolist() if 'query' in rising_df.columns else []
+                    
+                summary['related_terms'][keyword] = {
+                    'top': top_related,
+                    'rising': rising_related
+                }
+        
+        # Génération de statistiques générales
+        summary['stats'] = {
+            'total_keywords': len(trend_metrics),
+            'growing_count': len(summary['growing_keywords']),
+            'declining_count': len(summary['declining_keywords']),
+            'seasonal_count': len(summary['seasonal_keywords']),
+            'timestamp': time.time()
+        }
+        
+        return summary
+
+    def _detect_seasonality(self, results_by_timeframe: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Détecte les motifs saisonniers dans les données.
+        
+        Args:
+            results_by_timeframe: Résultats d'analyse par période
+            
+        Returns:
+            Dictionnaire avec les informations de saisonnalité
+        """
+        seasonality_result = {
+            'is_seasonal': False,
+            'seasonality_score': 0,
+            'peak_months': [],
+            'pattern_description': '',
+            'confidence': 'low'
+        }
+        
+        # Vérification si les périodes longues contiennent des données
+        long_term_results = results_by_timeframe.get('long_term', None) or results_by_timeframe.get('five_years', None)
+        
+        if not long_term_results or 'error' in long_term_results:
+            return seasonality_result
+            
+        # Vérifier si les données d'intérêt au fil du temps sont disponibles
+        interest_over_time = long_term_results.get('interest_over_time', pd.DataFrame())
+        
+        if interest_over_time.empty or len(interest_over_time) < 52:  # Au moins un an de données
+            return seasonality_result
+            
+        # Extraction des données du premier mot-clé (normalement un seul pour analyze_product)
+        if len(interest_over_time.columns) == 0:
+            return seasonality_result
+            
+        keyword = interest_over_time.columns[0]
+        keyword_data = interest_over_time[keyword]
+        
+        # Conversion de l'index en datetime si ce n'est pas déjà le cas
+        if not isinstance(interest_over_time.index, pd.DatetimeIndex):
+            try:
+                interest_over_time.index = pd.to_datetime(interest_over_time.index)
+                keyword_data.index = interest_over_time.index
+            except Exception as e:
+                logger.warning(f"Impossible de convertir l'index en datetime: {str(e)}")
+                return seasonality_result
+        
+        try:
+            # Calcul de l'autocorrélation pour détecter la saisonnalité
+            max_lag = min(52, len(keyword_data) // 2)  # Maximum 1 an de lag, ou la moitié des données
+            seasonal_lags = [12, 24, 26, 52]  # Lags correspondant à des motifs saisonniers potentiels
+            seasonal_lag = 0
+            max_correlation = 0.3  # Seuil minimum de corrélation pour considérer comme saisonnier
+            
+            for lag in seasonal_lags:
+                if lag < max_lag:
+                    # Calcul de l'autocorrélation
+                    shifted_data = keyword_data.shift(lag).dropna()
+                    if len(shifted_data) > 10:  # Au moins 10 points de données
+                        correlation = keyword_data.iloc[-len(shifted_data):].corr(shifted_data)
+                        if correlation > max_correlation:
+                            max_correlation = correlation
+                            seasonal_lag = lag
+            
+            # Si un motif saisonnier est détecté
+            if seasonal_lag > 0:
+                seasonality_result['is_seasonal'] = True
+                seasonality_result['seasonality_score'] = max_correlation * 100
+                
+                # Détermination de la confiance
+                if max_correlation > 0.7:
+                    seasonality_result['confidence'] = 'high'
+                elif max_correlation > 0.5:
+                    seasonality_result['confidence'] = 'medium'
+                else:
+                    seasonality_result['confidence'] = 'low'
+                
+                # Identification des mois de pic
+                monthly_avg = keyword_data.groupby(keyword_data.index.month).mean()
+                threshold = monthly_avg.mean() + (monthly_avg.std() * 0.5)
+                peak_months_indices = monthly_avg[monthly_avg > threshold].index.tolist()
+                
+                # Conversion des indices de mois en noms de mois
+                month_names = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                peak_months = [month_names[i-1] for i in peak_months_indices]
+                seasonality_result['peak_months'] = peak_months
+                
+                # Description du motif
+                if seasonal_lag == 12:
+                    pattern = "mensuel"
+                elif seasonal_lag in [24, 26]:
+                    pattern = "bimensuel"
+                elif seasonal_lag == 52:
+                    pattern = "annuel"
+                else:
+                    pattern = f"périodique ({seasonal_lag} semaines)"
+                    
+                seasonality_result['pattern_description'] = f"Motif {pattern} détecté"
+                if peak_months:
+                    seasonality_result['pattern_description'] += f", avec des pics en {', '.join(peak_months)}"
+                
+        except Exception as e:
+            logger.warning(f"Erreur lors de la détection de saisonnalité: {str(e)}")
+            
+        return seasonality_result
