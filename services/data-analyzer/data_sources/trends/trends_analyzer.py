@@ -7,6 +7,7 @@ Permet d'évaluer l'évolution de l'intérêt pour des produits ou mots-clés su
 import os
 import json
 import time
+import hashlib
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -350,3 +351,274 @@ class TrendsAnalyzer:
             error_msg = f"Erreur lors de la comparaison des produits: {str(e)}"
             logger.error(error_msg, exc_info=True)
             raise
+    
+    def _get_cache_file_path(
+        self, 
+        keywords: List[str], 
+        timeframe: str, 
+        geo: str, 
+        category: int
+    ) -> str:
+        """
+        Génère un chemin de fichier unique pour le cache basé sur les paramètres.
+        
+        Args:
+            keywords: Liste des mots-clés
+            timeframe: Période d'analyse
+            geo: Zone géographique
+            category: ID de catégorie
+            
+        Returns:
+            Chemin du fichier de cache
+        """
+        # Création d'une chaîne représentative de la requête
+        request_str = f"{','.join(sorted(keywords))}__{timeframe}__{geo or 'global'}__{category}"
+        
+        # Hachage de la chaîne pour créer un nom de fichier unique
+        hash_obj = hashlib.md5(request_str.encode('utf-8'))
+        filename = f"trends_{hash_obj.hexdigest()}.json"
+        
+        return os.path.join(self.cache_dir, filename)
+    
+    def _load_from_cache(self, cache_file: str, max_age_hours: int = 24) -> Optional[Dict[str, Any]]:
+        """
+        Charge les données depuis le cache si elles existent et ne sont pas expirées.
+        
+        Args:
+            cache_file: Chemin du fichier de cache
+            max_age_hours: Âge maximal du cache en heures
+            
+        Returns:
+            Données chargées ou None si le cache n'existe pas ou est expiré
+        """
+        if not os.path.exists(cache_file):
+            return None
+            
+        # Vérification de l'âge du fichier
+        file_age = time.time() - os.path.getmtime(cache_file)
+        max_age_seconds = max_age_hours * 3600
+        
+        if file_age > max_age_seconds:
+            logger.debug(f"Cache expiré ({file_age / 3600:.1f} heures > {max_age_hours} heures): {cache_file}")
+            return None
+            
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+                
+            # Extraction des données sérialisées
+            serialized_data = cache_data.get('data', {})
+            
+            # Reconstruction des DataFrames à partir des données JSON
+            if 'interest_over_time' in serialized_data and serialized_data['interest_over_time']:
+                serialized_data['interest_over_time'] = pd.DataFrame.from_dict(serialized_data['interest_over_time'])
+                
+            if 'interest_by_region' in serialized_data and serialized_data['interest_by_region']:
+                serialized_data['interest_by_region'] = pd.DataFrame.from_dict(serialized_data['interest_by_region'])
+                
+            logger.debug(f"Données chargées du cache: {cache_file}")
+            return serialized_data
+            
+        except Exception as e:
+            logger.warning(f"Erreur lors du chargement du cache ({cache_file}): {str(e)}")
+            return None
+    
+    def _save_to_cache(self, cache_file: str, data: Dict[str, Any]) -> bool:
+        """
+        Sauvegarde les données dans le cache.
+        
+        Args:
+            cache_file: Chemin du fichier de cache
+            data: Données à sauvegarder
+            
+        Returns:
+            True si la sauvegarde a réussi, False sinon
+        """
+        try:
+            # Création d'une copie pour éviter de modifier les données originales
+            serializable_data = data.copy()
+            
+            # Conversion des DataFrames en dictionnaires pour la sérialisation JSON
+            if 'interest_over_time' in serializable_data and not serializable_data['interest_over_time'].empty:
+                serializable_data['interest_over_time'] = serializable_data['interest_over_time'].to_dict()
+                
+            if 'interest_by_region' in serializable_data and not serializable_data['interest_by_region'].empty:
+                serializable_data['interest_by_region'] = serializable_data['interest_by_region'].to_dict()
+                
+            # Préparation des données de cache avec timestamp
+            cache_data = {
+                'timestamp': time.time(),
+                'data': serializable_data
+            }
+            
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, ensure_ascii=False)
+                
+            logger.debug(f"Données sauvegardées dans le cache: {cache_file}")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Erreur lors de la sauvegarde du cache ({cache_file}): {str(e)}")
+            return False
+    
+    def _calculate_trend_metrics(self, interest_over_time: pd.DataFrame, keywords: List[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        Calcule les métriques de tendance à partir des données d'intérêt.
+        
+        Args:
+            interest_over_time: DataFrame des intérêts sur le temps
+            keywords: Liste des mots-clés analysés
+            
+        Returns:
+            Dictionnaire avec les métriques de tendance pour chaque mot-clé
+        """
+        metrics = {}
+        
+        if interest_over_time.empty:
+            return metrics
+        
+        for keyword in keywords:
+            if keyword not in interest_over_time.columns:
+                continue
+                
+            keyword_data = interest_over_time[keyword].dropna()
+            
+            if len(keyword_data) < 2:
+                continue
+                
+            # Calcul de l'intérêt actuel (dernière valeur)
+            current_interest = float(keyword_data.iloc[-1])
+            
+            # Calcul de l'intérêt moyen
+            avg_interest = float(keyword_data.mean())
+            
+            # Calcul du taux de croissance
+            start_value = float(keyword_data.iloc[0])
+            end_value = float(keyword_data.iloc[-1])
+            growth_rate = ((end_value - start_value) / max(start_value, 1)) * 100
+            
+            # Calcul de la volatilité (écart-type)
+            volatility = float(keyword_data.std())
+            
+            # Calcul de l'élan (momentum) - comparaison dernière période vs précédente
+            if len(keyword_data) >= 6:
+                recent_avg = float(keyword_data.iloc[-3:].mean())
+                previous_avg = float(keyword_data.iloc[-6:-3].mean())
+                momentum = ((recent_avg - previous_avg) / max(previous_avg, 1)) * 100
+            else:
+                momentum = 0
+                
+            # Détermination si la tendance est en croissance
+            is_growing = growth_rate > 5
+            
+            # Détection de saisonnalité (simple)
+            is_seasonal = False
+            seasonality_score = 0
+            
+            if len(keyword_data) >= 52:  # Au moins un an de données hebdomadaires
+                # Recherche de motifs saisonniers (corrélation avec données décalées)
+                try:
+                    for shift in [52]:  # Vérification des motifs annuels
+                        if shift < len(keyword_data):
+                            # Calcul de l'autocorrélation
+                            shifted_data = keyword_data.shift(shift).dropna()
+                            if len(shifted_data) > 10:  # Au moins 10 points de données
+                                correlation = keyword_data.iloc[-len(shifted_data):].corr(shifted_data)
+                                if correlation > 0.5:  # Corrélation forte indique saisonnalité
+                                    is_seasonal = True
+                                    seasonality_score = correlation * 100
+                except Exception as e:
+                    logger.warning(f"Erreur lors de la détection de saisonnalité pour {keyword}: {str(e)}")
+            
+            # Calcul du score de tendance (0-100)
+            trend_score = self._calculate_trend_score(
+                current_interest, growth_rate, volatility, momentum
+            )
+            
+            # Compilation des métriques
+            metrics[keyword] = {
+                'current_interest': current_interest,
+                'average_interest': avg_interest,
+                'growth_rate': growth_rate,
+                'volatility': volatility,
+                'momentum': momentum,
+                'is_growing': is_growing,
+                'is_seasonal': is_seasonal,
+                'seasonality_score': seasonality_score,
+                'trend_score': trend_score
+            }
+        
+        return metrics
+    
+    def _calculate_trend_score(
+        self,
+        current_interest: float,
+        growth_rate: float,
+        volatility: float,
+        momentum: float
+    ) -> float:
+        """
+        Calcule un score global de tendance (0-100).
+        
+        Args:
+            current_interest: Niveau d'intérêt actuel
+            growth_rate: Taux de croissance (pourcentage)
+            volatility: Volatilité (écart-type)
+            momentum: Élan récent (pourcentage)
+            
+        Returns:
+            Score de tendance (0-100)
+        """
+        # Conversion des valeurs en scores 0-100
+        current_score = min(100, current_interest)
+        
+        # Score de croissance
+        growth_score = 50  # Valeur neutre
+        if growth_rate > 100:
+            growth_score = 100
+        elif growth_rate > 50:
+            growth_score = 90
+        elif growth_rate > 25:
+            growth_score = 80
+        elif growth_rate > 10:
+            growth_score = 70
+        elif growth_rate > 0:
+            growth_score = 60
+        elif growth_rate > -10:
+            growth_score = 40
+        elif growth_rate > -25:
+            growth_score = 30
+        elif growth_rate > -50:
+            growth_score = 20
+        else:
+            growth_score = 10
+        
+        # Score de volatilité (faible volatilité est mieux)
+        volatility_score = max(0, 100 - (volatility * 2))
+        
+        # Score d'élan (momentum)
+        momentum_score = 50  # Valeur neutre
+        if momentum > 50:
+            momentum_score = 100
+        elif momentum > 25:
+            momentum_score = 90
+        elif momentum > 10:
+            momentum_score = 80
+        elif momentum > 0:
+            momentum_score = 70
+        elif momentum > -10:
+            momentum_score = 40
+        elif momentum > -25:
+            momentum_score = 30
+        else:
+            momentum_score = 20
+        
+        # Calcul de la moyenne pondérée
+        trend_score = (
+            (current_score * 0.3) +  # Intérêt actuel (30%)
+            (growth_score * 0.3) +   # Croissance (30%)
+            (volatility_score * 0.1) + # Volatilité (10%)
+            (momentum_score * 0.3)   # Élan (30%)
+        )
+        
+        return trend_score
