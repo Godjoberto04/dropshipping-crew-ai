@@ -75,105 +75,7 @@ class TrendsAnalyzer:
         os.makedirs(self.cache_dir, exist_ok=True)
         
         logger.info(f"TrendsAnalyzer initialisé (langue: {self.hl}, région: {self.geo})")
-        
-    def _get_cache_file_path(self, keywords: List[str], timeframe: str, geo: str, cat: int) -> str:
-        """
-        Génère le chemin du fichier de cache.
-        
-        Args:
-            keywords: Liste de mots-clés
-            timeframe: Période d'analyse
-            geo: Région
-            cat: Catégorie
-            
-        Returns:
-            Chemin du fichier de cache
-        """
-        # Création d'une clé de cache basée sur les paramètres
-        keywords_str = "_".join(sorted([k.replace(" ", "-") for k in keywords]))
-        cache_key = f"{keywords_str}_{timeframe}_{geo}_{cat}"
-        
-        # Utilisation d'un hachage si la clé est trop longue
-        if len(cache_key) > 100:
-            import hashlib
-            cache_key = hashlib.md5(cache_key.encode()).hexdigest()
-            
-        return os.path.join(self.cache_dir, f"{cache_key}.json")
     
-    def _save_to_cache(self, cache_file: str, data: Dict[str, Any]) -> None:
-        """
-        Sauvegarde les données dans le cache.
-        
-        Args:
-            cache_file: Chemin du fichier de cache
-            data: Données à sauvegarder
-        """
-        try:
-            # Conversion des DataFrames en dictionnaires
-            cache_data = {}
-            for key, value in data.items():
-                if isinstance(value, pd.DataFrame):
-                    cache_data[key] = value.to_dict()
-                else:
-                    cache_data[key] = value
-                    
-            # Ajout de métadonnées de cache
-            cache_data['_cache_timestamp'] = time.time()
-            
-            with open(cache_file, 'w', encoding='utf-8') as f:
-                json.dump(cache_data, f, ensure_ascii=False)
-                
-        except Exception as e:
-            logger.warning(f"Erreur lors de la sauvegarde du cache: {str(e)}")
-    
-    def _load_from_cache(self, cache_file: str, max_age_hours: int = 24) -> Optional[Dict[str, Any]]:
-        """
-        Charge des données depuis le cache si elles existent et sont récentes.
-        
-        Args:
-            cache_file: Chemin du fichier de cache
-            max_age_hours: Âge maximum du cache en heures
-            
-        Returns:
-            Données du cache ou None si cache invalide/inexistant
-        """
-        try:
-            if not os.path.exists(cache_file):
-                return None
-                
-            with open(cache_file, 'r', encoding='utf-8') as f:
-                cache_data = json.load(f)
-                
-            # Vérification de l'âge du cache
-            timestamp = cache_data.get('_cache_timestamp', 0)
-            cache_age = time.time() - timestamp
-            max_age_seconds = max_age_hours * 3600
-            
-            if cache_age > max_age_seconds:
-                logger.debug(f"Cache expiré ({cache_age/3600:.1f} heures > {max_age_hours} heures)")
-                return None
-                
-            # Conversion des dictionnaires en DataFrames
-            result = {}
-            for key, value in cache_data.items():
-                if key.startswith('_'):  # Ignorer les métadonnées
-                    continue
-                    
-                if isinstance(value, dict) and ('index' in value or 'columns' in value):
-                    try:
-                        result[key] = pd.DataFrame.from_dict(value)
-                    except Exception:
-                        result[key] = value
-                else:
-                    result[key] = value
-                    
-            logger.debug(f"Données chargées depuis le cache ({cache_file})")
-            return result
-            
-        except Exception as e:
-            logger.warning(f"Erreur lors du chargement du cache: {str(e)}")
-            return None
-            
     def analyze_keywords(
         self, 
         keywords: Union[str, List[str]], 
@@ -282,5 +184,169 @@ class TrendsAnalyzer:
             raise Exception(error_msg)
         except Exception as e:
             error_msg = f"Erreur lors de l'analyse des tendances: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            raise
+
+    def analyze_product(
+        self, 
+        product_name: str,
+        product_keywords: List[str] = None,
+        timeframes: List[str] = None,
+        geo: str = None
+    ) -> Dict[str, Any]:
+        """
+        Analyse complète d'un produit sur plusieurs périodes.
+        
+        Args:
+            product_name: Nom du produit
+            product_keywords: Mots-clés supplémentaires liés au produit
+            timeframes: Liste des périodes à analyser
+            geo: Zone géographique
+            
+        Returns:
+            Dictionnaire avec l'analyse complète du produit
+        """
+        if product_keywords is None:
+            product_keywords = []
+            
+        # Fusion et déduplication du nom de produit et des mots-clés
+        all_keywords = [product_name] + product_keywords
+        unique_keywords = list(dict.fromkeys(all_keywords))
+        
+        if timeframes is None:
+            timeframes = ['short_term', 'medium_term', 'long_term']
+            
+        # Résultats pour chaque période
+        results_by_timeframe = {}
+        
+        for timeframe in timeframes:
+            try:
+                # On analyse uniquement le nom du produit en détail
+                results = self.analyze_keywords(
+                    keywords=[product_name],
+                    timeframe=timeframe,
+                    geo=geo
+                )
+                results_by_timeframe[timeframe] = results
+            except Exception as e:
+                logger.warning(f"Erreur lors de l'analyse pour {timeframe}: {str(e)}")
+                results_by_timeframe[timeframe] = {"error": str(e)}
+        
+        # Analyse des mots-clés associés sur la période moyenne
+        related_keywords_analysis = {}
+        
+        if len(product_keywords) > 0:
+            for keyword in product_keywords[:4]:  # Limité à 4 pour éviter trop de requêtes
+                try:
+                    keyword_results = self.analyze_keywords(
+                        keywords=[keyword],
+                        timeframe='medium_term',
+                        geo=geo
+                    )
+                    related_keywords_analysis[keyword] = keyword_results
+                except Exception as e:
+                    logger.warning(f"Erreur lors de l'analyse du mot-clé {keyword}: {str(e)}")
+        
+        # Création d'un rapport complet
+        product_analysis = {
+            'product_name': product_name,
+            'keywords': unique_keywords,
+            'analysis_by_timeframe': results_by_timeframe,
+            'related_keywords_analysis': related_keywords_analysis,
+            'overall_trend_score': self._calculate_overall_trend_score(results_by_timeframe),
+            'is_trending': self._is_product_trending(results_by_timeframe),
+            'seasonality': self._detect_seasonality(results_by_timeframe),
+            'conclusion': self._generate_product_conclusion(results_by_timeframe)
+        }
+        
+        return product_analysis
+
+    def compare_products(
+        self,
+        products: List[str],
+        timeframe: str = 'medium_term',
+        geo: str = None,
+        category: int = 0,
+        use_cache: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Compare plusieurs produits sur la base de leurs tendances.
+        
+        Args:
+            products: Liste des noms de produits à comparer (max 5)
+            timeframe: Période d'analyse
+            geo: Zone géographique
+            category: ID de catégorie Google Trends
+            use_cache: Utiliser le cache si disponible
+            
+        Returns:
+            Dictionnaire avec les résultats de la comparaison
+            
+        Raises:
+            ValueError: Si les paramètres sont invalides
+            Exception: Si la comparaison échoue
+        """
+        # Validation des paramètres
+        if not products:
+            raise ValueError("Au moins un produit est requis")
+            
+        if len(products) < 2:
+            raise ValueError("Au moins deux produits sont nécessaires pour une comparaison")
+            
+        if len(products) > 5:
+            logger.warning("Plus de 5 produits fournis. Seuls les 5 premiers seront comparés.")
+            products = products[:5]
+        
+        logger.info(f"Comparaison de {len(products)} produits: {', '.join(products)}")
+        
+        try:
+            # Utilisation de la fonction d'analyse de mots-clés existante
+            analysis_results = self.analyze_keywords(
+                keywords=products,
+                timeframe=timeframe,
+                geo=geo,
+                category=category,
+                use_cache=use_cache
+            )
+            
+            # Extraction des métriques de tendance pour la comparaison
+            trend_metrics = analysis_results.get('trend_metrics', {})
+            
+            # Création d'un classement des produits
+            ranked_products = []
+            for product, metrics in trend_metrics.items():
+                ranked_products.append({
+                    'name': product,
+                    'trend_score': metrics.get('trend_score', 0),
+                    'current_interest': metrics.get('current_interest', 0),
+                    'growth_rate': metrics.get('growth_rate', 0),
+                    'is_growing': metrics.get('is_growing', False),
+                    'is_seasonal': metrics.get('is_seasonal', False)
+                })
+            
+            # Tri des produits par score de tendance (du plus élevé au plus bas)
+            ranked_products.sort(key=lambda x: x['trend_score'], reverse=True)
+            
+            # Ajout des données d'intérêt au fil du temps pour visualisation
+            interest_over_time = {}
+            if not analysis_results.get('interest_over_time', pd.DataFrame()).empty:
+                for product in products:
+                    if product in analysis_results['interest_over_time'].columns:
+                        interest_over_time[product] = analysis_results['interest_over_time'][product].tolist()
+            
+            # Construction du résultat de la comparaison
+            comparison_result = {
+                'ranked_products': ranked_products,
+                'interest_over_time': interest_over_time,
+                'analysis_period': timeframe,
+                'timestamp': time.time(),
+                'top_product': ranked_products[0]['name'] if ranked_products else None,
+                'product_trends': {p['name']: {'score': p['trend_score'], 'growing': p['is_growing']} for p in ranked_products}
+            }
+            
+            return comparison_result
+            
+        except Exception as e:
+            error_msg = f"Erreur lors de la comparaison des produits: {str(e)}"
             logger.error(error_msg, exc_info=True)
             raise
