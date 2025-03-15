@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
 """
-Package contenant les routeurs FastAPI pour l'API Order Manager.
+Routeurs pour l'API de l'agent Order Manager
+Fait partie du projet Dropshipping Crew AI
 """
+
+from . import health, orders, supplier_orders, supplier_selection
+
+__all__ = ['health', 'orders', 'supplier_orders', 'supplier_selection']
