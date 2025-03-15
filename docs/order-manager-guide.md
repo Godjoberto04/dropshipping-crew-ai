@@ -10,21 +10,26 @@ L'agent Order Manager est un composant clé du système Dropshipping Crew AI, ch
 - Réception automatique des commandes depuis Shopify via API et webhooks
 - Validation et normalisation des données de commande
 - Classification des commandes par priorité, région et fournisseur
+- Traitement automatique ou manuel selon des critères configurables (ex: montant)
+- Vérification des informations, détection des fraudes potentielles, validation des stocks
 
 ### 2. Intégration avec les fournisseurs
-- Transmission automatique des commandes aux fournisseurs (AliExpress actuellement supporté)
+- Transmission automatique des commandes aux fournisseurs (AliExpress et CJ Dropshipping actuellement supportés)
 - Gestion des variantes et options de produits
 - Suivi des prix et disponibilité en temps réel
+- Format spécifique par fournisseur pour adapter les données de commande
 
 ### 3. Suivi des commandes et expéditions
 - Surveillance des statuts de commande auprès des fournisseurs
 - Mise à jour automatique du statut dans Shopify
 - Génération et envoi des notifications aux clients
+- Récupération des informations de suivi et des transporteurs
 
 ### 4. Gestion des exceptions
 - Détection et signalement des problèmes potentiels (rupture de stock, retards, etc.)
 - Procédures de résolution automatisées pour les cas simples
 - Escalade vers intervention humaine pour les cas complexes
+- Traitement des demandes d'annulation ou de remboursement
 
 ### 5. Recherche de produits
 - Recherche de produits chez les fournisseurs via API
@@ -49,7 +54,8 @@ order-manager/
 │   └── suppliers/          # Intégrations avec fournisseurs
 │       ├── base.py         # Classe abstraite pour fournisseurs
 │       ├── communicator.py # Interface commune
-│       └── aliexpress.py   # Implémentation spécifique AliExpress
+│       ├── aliexpress.py   # Implémentation spécifique AliExpress
+│       └── cjdropshipping.py # Implémentation CJ Dropshipping
 ├── models/                 # Modèles de données
 │   ├── order.py            # Représentation des commandes
 │   ├── supplier_order.py   # Commandes côté fournisseurs
@@ -63,6 +69,14 @@ order-manager/
 └── notifications/          # Système de notifications
     └── notification_manager.py # Gestion des alertes
 ```
+
+### Composants principaux
+
+1. **OrderProcessor** : Gestionnaire central pour le traitement des commandes
+2. **SupplierCommunicator** : Interface avec les différents fournisseurs
+3. **ShipmentTracker** : Suivi des expéditions et mise à jour des statuts
+4. **NotificationService** : Système de notifications pour les alertes et communications
+5. **ConfigManager** : Gestion de la configuration et des paramètres
 
 ## Utilisation de l'API
 
@@ -101,6 +115,7 @@ GET /api/shipments/{shipment_id}/track # Suivi d'une expédition
 ```
 POST /api/webhooks/shopify            # Webhook pour les événements Shopify
 POST /api/webhooks/aliexpress         # Callback pour les mises à jour AliExpress
+POST /api/webhooks/cjdropshipping     # Callback pour les mises à jour CJ Dropshipping
 ```
 
 ### Exemples d'utilisation
@@ -155,11 +170,42 @@ curl -X POST "http://your-server/api/suppliers/aliexpress/orders" \
   }'
 ```
 
+#### Traitement manuel d'une commande
+
+```bash
+curl -X POST "http://your-server/api/orders/12345/process" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -d '{
+    "action": "process",
+    "manual_review": true
+  }'
+```
+
+#### Suivi manuel d'une expédition
+
+```bash
+curl -X POST "http://your-server/api/shipments/track" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -d '{
+    "order_id": 12345,
+    "tracking_number": "TRK123456789",
+    "carrier": "dhl"
+  }'
+```
+
 ## Configuration
 
 L'agent Order Manager nécessite les configurations suivantes dans le fichier `.env` :
 
 ```
+# Configuration API
+API_BASE_URL=http://api:8000
+PORT=8003
+HOST=0.0.0.0
+STARTUP_DELAY=5
+
 # Shopify
 SHOPIFY_SHOP_NAME=votre-boutique.myshopify.com
 SHOPIFY_API_KEY=XXXXXXXXXXXXXXXXXXXXXXXX
@@ -170,6 +216,10 @@ SHOPIFY_API_VERSION=2025-01
 ALIEXPRESS_API_KEY=XXXXXXXXXXXXXXXX
 ALIEXPRESS_API_SECRET=XXXXXXXXXXXXXXXX
 ALIEXPRESS_AFFILIATE_ID=XXXXXXXXX
+
+# CJ Dropshipping
+CJDROPSHIPPING_API_URL=https://api.cjdropshipping.com
+CJDROPSHIPPING_API_KEY=XXXXXXXXXXXXXXXX
 
 # Base de données
 POSTGRES_USER=postgres
@@ -182,10 +232,33 @@ POSTGRES_PORT=5432
 REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_PASSWORD=XXXXXXXXX
+REDIS_DB=0
 
 # Sécurité API
 API_SECRET_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# Notification
+NOTIFICATION_EMAIL=your-email@example.com
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-username
+SMTP_PASSWORD=your-password
+
+# Paramètres de traitement
+AUTO_PROCESS_ORDERS=true
+ORDER_PROCESSING_INTERVAL=15
+TRACKING_UPDATE_INTERVAL=120
+MANUAL_REVIEW_THRESHOLD=100.0
 ```
+
+### Configuration des fournisseurs
+
+Les fournisseurs sont configurés dans le fichier `config.py` ou via les variables d'environnement. Chaque fournisseur nécessite au minimum :
+
+- Un nom
+- Une URL d'API
+- Une clé d'API
+- Des endpoints pour les commandes et le suivi
 
 ## Intégration avec Shopify
 
@@ -208,13 +281,48 @@ L'application Shopify associée à votre agent Order Manager nécessite les perm
 - `read_customers` - Pour accéder aux informations clients
 - `read_shipping` - Pour les informations d'expédition
 
-## Intégration avec AliExpress
+## Intégration avec les fournisseurs
+
+### AliExpress
 
 L'intégration avec AliExpress utilise une combinaison de l'API officielle et de scraping lorsque nécessaire. Pour configurer l'accès :
 
 1. Créez un compte développeur sur [AliExpress Affiliate Program](https://portals.aliexpress.com)
 2. Demandez un accès à l'API Dropshipping
 3. Obtenez vos clés API et insérez-les dans le fichier `.env`
+
+### CJ Dropshipping
+
+L'intégration avec CJ Dropshipping utilise leur API officielle. Pour configurer l'accès :
+
+1. Créez un compte sur [CJ Dropshipping](https://cjdropshipping.com)
+2. Accédez au Developer Portal pour obtenir votre clé API
+3. Configurez la clé dans votre fichier `.env`
+
+## Intégration avec les autres agents
+
+### Agent Data Analyzer
+
+L'agent Order Manager récupère des informations sur les produits et les fournisseurs auprès de l'agent Data Analyzer pour déterminer le meilleur fournisseur pour chaque produit commandé.
+
+### Agent Website Builder
+
+L'agent Order Manager est notifié des nouvelles commandes via les webhooks configurés par l'agent Website Builder dans Shopify.
+
+### Agent Content Generator
+
+L'agent Order Manager peut solliciter l'agent Content Generator pour créer des communications personnalisées avec les clients en cas de problèmes ou de retards.
+
+## Workflow typique
+
+1. Une nouvelle commande est reçue via le webhook Shopify
+2. L'agent vérifie si la commande nécessite une revue manuelle (ex : montant élevé)
+3. Si la commande peut être traitée automatiquement, l'agent détermine le fournisseur approprié
+4. La commande est transmise au fournisseur dans le format attendu
+5. L'agent surveille régulièrement le statut de la commande auprès du fournisseur
+6. Lorsque la commande est expédiée, l'agent récupère les informations de suivi
+7. L'agent surveille l'état de l'expédition jusqu'à la livraison
+8. Le statut de la commande dans Shopify est mis à jour à chaque étape
 
 ## Surveillance et monitoring
 
@@ -228,6 +336,22 @@ L'agent Order Manager expose des métriques pour le monitoring via l'endpoint `/
 
 Ces métriques peuvent être collectées par des outils comme Prometheus et visualisées dans Grafana.
 
+L'agent collecte également des métriques sur :
+- Nombre de commandes traitées
+- Taux de succès/échec des transmissions aux fournisseurs
+- Temps moyen de traitement des commandes
+- Délais d'expédition par fournisseur
+- Taux de problèmes par fournisseur
+
+### Logs
+
+L'agent génère des logs détaillés dans le dossier `/logs` avec différents niveaux de verbosité :
+
+- **ERROR** : Problèmes critiques nécessitant une intervention
+- **WARNING** : Situations anormales mais non critiques
+- **INFO** : Actions normales et changements d'état
+- **DEBUG** : Informations détaillées pour le débogage
+
 ## Gestion des erreurs
 
 En cas d'erreur lors du traitement des commandes, l'agent Order Manager adopte une approche de résilience :
@@ -240,16 +364,33 @@ En cas d'erreur lors du traitement des commandes, l'agent Order Manager adopte u
 ## Limites actuelles et évolutions prévues
 
 ### Limites connues
-- Support actuellement limité à AliExpress comme fournisseur
+- Support actuellement limité à AliExpress et CJ Dropshipping comme fournisseurs
 - Gestion partielle des retours et remboursements
 - Capacité de traitement limitée à environ 1000 commandes/jour
 
 ### Évolutions planifiées
-- Support de CJ Dropshipping et autres fournisseurs majeurs
+- Support d'autres fournisseurs dropshipping majeurs
 - Gestion complète des retours et remboursements
 - Optimisation pour gérer >10 000 commandes/jour
 - Système avancé de gestion des anomalies et exceptions
 - Interface utilisateur dédiée pour la supervision manuelle
+- Algorithme intelligent de sélection de fournisseur basé sur les prix, délais et fiabilité
+- Tableau de bord des commandes avec interface visuelle
+- Intégration avec des services de suivi tiers (AfterShip, ShipStation, etc.)
+
+## Tests
+
+L'agent Order Manager comprend une suite de tests unitaires pour assurer la fiabilité des fonctionnalités principales :
+
+```bash
+# Exécuter tous les tests
+cd services/order-manager
+python -m unittest discover -s tests
+
+# Exécuter un test spécifique
+python -m unittest tests.test_aliexpress_supplier
+python -m unittest tests.test_cjdropshipping_supplier
+```
 
 ## Résolution des problèmes courants
 
@@ -258,8 +399,8 @@ En cas d'erreur lors du traitement des commandes, l'agent Order Manager adopte u
 - Assurez-vous que votre serveur est accessible depuis l'internet
 - Vérifiez les logs d'erreur pour des problèmes d'authentification
 
-### Échec de transmission des commandes à AliExpress
-- Vérifiez les informations d'API AliExpress
+### Échec de transmission des commandes aux fournisseurs
+- Vérifiez les informations d'API des fournisseurs
 - Assurez-vous que les produits sont toujours disponibles
 - Vérifiez que les adresses client sont complètes et au format correct
 
@@ -267,6 +408,10 @@ En cas d'erreur lors du traitement des commandes, l'agent Order Manager adopte u
 - Augmentez les ressources allouées au conteneur
 - Vérifiez les connexions à la base de données et au cache Redis
 - Assurez-vous que la rotation des logs est correctement configurée
+
+### Échecs d'envoi de notifications
+- Vérifiez la configuration SMTP
+- Vérifiez les permissions d'envoi d'emails
 
 ## Support et contribution
 
