@@ -44,6 +44,7 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
    - Synchronisation avec Shopify
    - Suivi des commandes et expéditions
    - Tests unitaires complets pour les intégrations fournisseurs
+   - Système de notification pour informer les clients des changements de statut
 
 5. **Site Updater** 🔜 (planifié)
    - Actualise les prix selon la concurrence
@@ -203,6 +204,7 @@ Le projet utilise une API centralisée qui comprend:
 - **NOUVEAU** 🔥 : Tests unitaires pour les intégrations AliExpress et CJ Dropshipping
 - **NOUVEAU** 🔥 : Documentation détaillée pour l'agent Order Manager et ses intégrations
 - **NOUVEAU** 🔥 : Architecture modulaire pour l'intégration avec les fournisseurs dropshipping
+- **NOUVEAU** 🔥 : Système de notification pour informer les clients des changements de statut des commandes
 - **NOUVEAU** 🔥 : Suite complète de tests unitaires pour l'agent Content Generator (intégrations, client API, templates, etc.)
 - **NOUVEAU** 🔥 : Implémentation complète de l'agent Content Generator avec capacité de génération de descriptions de produits optimisées SEO
 - **NOUVEAU** 🔥 : Support pour plusieurs niches (mode, électronique, maison, beauté) avec templates spécialisés
@@ -398,6 +400,13 @@ curl -X POST "http://votre-serveur:8000/agents/order-manager/supplier-orders" \
 # Vérifier le statut d'expédition
 curl -X GET "http://votre-serveur:8000/agents/order-manager/shipments/tracking-id" \
   -H "Content-Type: application/json"
+
+# Annuler une commande
+curl -X POST "http://votre-serveur:8000/agents/order-manager/orders/123456789/cancel" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "Demande client : changement d\'avis"
+  }'
 ```
 
 ## Tests unitaires
@@ -515,6 +524,7 @@ Si vous rencontrez des problèmes lors du déploiement :
 5. **Erreurs d'API fournisseurs**: Vérifiez les clés d'API AliExpress/CJ Dropshipping dans les variables d'environnement
 6. **Dépendances manquantes**: Reconstruisez les conteneurs avec `docker-compose build --no-cache`
 7. **Tests unitaires qui échouent**: Vérifiez les dépendances et la configuration dans les dossiers de tests
+8. **Problèmes avec Order Manager**: Vérifiez la configuration et les logs avec `docker-compose logs -f order-manager`
 
 ## Contact et support
 
