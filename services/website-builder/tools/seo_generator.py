@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import datetime
+import random
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,15 @@ class SEOMetaGenerator:
                 'withFeatures': 'Notre {emotionalTrigger} {productName} vous impressionnera. Caractéristiques : {keyFeatures}. {primaryBenefit} et plus. Commandez maintenant !',
                 'withTestimonial': 'Nos clients adorent notre {productName} : "{testimonialSnippet}". {primaryBenefit} et {secondaryBenefit}. Commandez aujourd\'hui !'
             }
+        }
+        
+        # Mots-clés communs par niche
+        self.common_keywords = {
+            'fashion': ['vêtement', 'mode', 'tendance', 'style', 'collection'],
+            'electronics': ['électronique', 'tech', 'gadget', 'innovation', 'connecté'],
+            'homeDecor': ['décoration', 'intérieur', 'maison', 'design', 'ameublement'],
+            'beauty': ['beauté', 'soin', 'cosmétique', 'naturel', 'bio'],
+            'fitness': ['sport', 'exercice', 'entraînement', 'santé', 'performance']
         }
         
         logger.info("Générateur de méta-données SEO initialisé")
