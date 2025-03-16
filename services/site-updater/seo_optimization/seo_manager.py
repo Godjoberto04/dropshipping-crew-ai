@@ -100,3 +100,166 @@ class SEOOptimizationManager:
         except Exception as e:
             logger.error(f"Erreur lors de la récupération de {url}: {str(e)}")
             return None
+    
+    async def analyze_page_seo(self, url: str, target_keywords: List[str] = None) -> Dict[str, Any]:
+        """
+        Analyse les aspects SEO d'une page.
+        
+        Args:
+            url: URL de la page à analyser
+            target_keywords: Liste des mots-clés cibles pour cette page
+            
+        Returns:
+            Résultats de l'analyse SEO
+        """
+        html = await self._fetch_page(url)
+        if html is None:
+            return {
+                "url": url,
+                "status": "error",
+                "message": "Impossible de récupérer la page",
+                "timestamp": time.time()
+            }
+        
+        # Analyser le HTML
+        try:
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Extraire les informations de base
+            title = soup.title.string.strip() if soup.title else ""
+            
+            # Meta description
+            meta_description = ""
+            meta_desc_tag = soup.find("meta", attrs={"name": "description"})
+            if meta_desc_tag and meta_desc_tag.get("content"):
+                meta_description = meta_desc_tag["content"].strip()
+            
+            # Extraire les titres (h1, h2, h3)
+            h1_tags = soup.find_all("h1")
+            h2_tags = soup.find_all("h2")
+            h3_tags = soup.find_all("h3")
+            
+            # Extraire le contenu textuel principal
+            # Supprimer les scripts, styles, et autres balises non pertinentes
+            for script in soup(["script", "style", "nav", "footer", "header"]):
+                script.extract()
+            
+            text_content = soup.get_text(separator=" ", strip=True)
+            words = [word for word in re.findall(r'\b\w+\b', text_content.lower()) if len(word) > 1]
+            word_count = len(words)
+            
+            # Calculer la densité des mots-clés
+            keyword_density = {}
+            if target_keywords:
+                for keyword in target_keywords:
+                    keyword_lower = keyword.lower()
+                    keyword_count = sum(1 for word in words if word == keyword_lower)
+                    keyword_density[keyword] = (keyword_count / word_count * 100) if word_count > 0 else 0
+            
+            # Analyser les images
+            images = soup.find_all("img")
+            images_with_alt = [img for img in images if img.get("alt")]
+            
+            # Analyser les liens
+            all_links = soup.find_all("a", href=True)
+            internal_links = []
+            external_links = []
+            
+            base_domain = urlparse(url).netloc
+            for link in all_links:
+                href = link["href"]
+                if href.startswith("#") or href.startswith("javascript:"):
+                    continue
+                
+                full_url = urljoin(url, href)
+                parsed_url = urlparse(full_url)
+                
+                if parsed_url.netloc == base_domain or not parsed_url.netloc:
+                    internal_links.append({
+                        "url": full_url,
+                        "text": link.get_text(strip=True),
+                        "nofollow": "rel" in link.attrs and "nofollow" in link["rel"]
+                    })
+                else:
+                    external_links.append({
+                        "url": full_url,
+                        "text": link.get_text(strip=True),
+                        "nofollow": "rel" in link.attrs and "nofollow" in link["rel"]
+                    })
+            
+            # Extraire les données structurées (JSON-LD)
+            structured_data = []
+            json_ld_tags = soup.find_all("script", type="application/ld+json")
+            for tag in json_ld_tags:
+                try:
+                    data = json.loads(tag.string)
+                    structured_data.append(data)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            
+            # Calculer les scores SEO
+            seo_scores = self._calculate_seo_scores({
+                "title_length": len(title),
+                "meta_description_length": len(meta_description),
+                "h1_count": len(h1_tags),
+                "keyword_density": max(keyword_density.values()) if keyword_density else 0,
+                "internal_links": len(internal_links),
+                "img_alt_ratio": (len(images_with_alt) / len(images) * 100) if images else 100,
+                "content_length": word_count,
+            })
+            
+            # Préparer les résultats
+            results = {
+                "url": url,
+                "status": "success",
+                "timestamp": time.time(),
+                "basic_info": {
+                    "title": title,
+                    "title_length": len(title),
+                    "meta_description": meta_description,
+                    "meta_description_length": len(meta_description)
+                },
+                "content_analysis": {
+                    "word_count": word_count,
+                    "h1_tags": [h1.get_text(strip=True) for h1 in h1_tags],
+                    "h2_tags": [h2.get_text(strip=True) for h2 in h2_tags],
+                    "h3_tags": [h3.get_text(strip=True) for h3 in h3_tags]
+                },
+                "keyword_analysis": {
+                    "target_keywords": target_keywords,
+                    "keyword_density": keyword_density
+                },
+                "link_analysis": {
+                    "internal_links_count": len(internal_links),
+                    "external_links_count": len(external_links),
+                    "internal_links": internal_links[:10],  # Limiter pour éviter des résultats trop volumineux
+                    "external_links": external_links[:10]
+                },
+                "image_analysis": {
+                    "total_images": len(images),
+                    "images_with_alt": len(images_with_alt),
+                    "alt_text_ratio": (len(images_with_alt) / len(images) * 100) if images else 100
+                },
+                "structured_data": {
+                    "count": len(structured_data),
+                    "types": [self._get_schema_type(data) for data in structured_data]
+                },
+                "seo_scores": seo_scores
+            }
+            
+            # Générer des recommandations
+            recommendations = self._generate_recommendations(results)
+            results["recommendations"] = recommendations
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'analyse SEO de {url}: {str(e)}")
+            return {
+                "url": url,
+                "status": "error",
+                "message": f"Erreur lors de l'analyse: {str(e)}",
+                "timestamp": time.time()
+            }
+        finally:
+            await self._close_session()
