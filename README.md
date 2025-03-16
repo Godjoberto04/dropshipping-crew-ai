@@ -27,6 +27,10 @@ Ce projet vise à créer un système entièrement autonome pour gérer une bouti
    - **MISE À JOUR MARS 15** 🔥 : Système avancé de cache pour optimiser les performances et limiter les requêtes API
    - **MISE À JOUR MARS 15** 🔥 : Analyse prédictive des tendances avec génération de recommandations détaillées
    - **MISE À JOUR MARS 15** 🔥 : Tests unitaires pour valider les fonctionnalités du module TrendsAnalyzer
+   - **MISE À JOUR MARS 16** 🔥 : Nouveau module d'analyse de complémentarité pour identifier les produits associés et maximiser la valeur du panier
+   - **MISE À JOUR MARS 16** 🔥 : Système de création de bundles intelligents avec suggestions de remises optimisées
+   - **MISE À JOUR MARS 16** 🔥 : Fonctionnalités d'up-sell pour recommander des produits de gamme supérieure
+   - **MISE À JOUR MARS 16** 🔥 : Tests unitaires complets pour le module d'analyse de complémentarité
    - Limitations en cours de résolution: Intégration avec SEMrush/Ahrefs en cours
 
 2. **Website Builder** ✅
@@ -113,16 +117,31 @@ Le projet utilise une API centralisée qui comprend:
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── amazon.py
 │   │   │   │   └── aliexpress.py
+│   │   │   ├── seo/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── semrush_analyzer.py
 │   │   │   └── social/
 │   │   │       ├── __init__.py
 │   │   │       └── social_analyzer.py
 │   │   ├── models/
 │   │   │   ├── __init__.py
-│   │   │   ├── scoring.py
+│   │   │   ├── scoring/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── base.py
+│   │   │   │   ├── multicriteria.py
+│   │   │   │   └── criteria/
+│   │   │   │       ├── market.py
+│   │   │   │       ├── competition.py
+│   │   │   │       └── trend.py
+│   │   │   ├── complementary/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── association_rules.py
+│   │   │   │   └── complementary_analyzer.py
 │   │   │   └── forecasting.py
 │   │   └── tests/
 │   │       ├── __init__.py
-│   │       └── test_trends_analyzer.py
+│   │       ├── test_trends_analyzer.py
+│   │       └── test_complementary_analyzer.py
 │   ├── website-builder/
 │   │   ├── Dockerfile
 │   │   ├── main.py
@@ -158,70 +177,28 @@ Le projet utilise une API centralisée qui comprend:
 │   │   │   └── shopify.py
 │   │   └── tests/
 │   │       ├── __init__.py
-│   │       ├── test_api_client.py
-│   │       ├── test_claude_client.py
-│   │       ├── test_config.py
-│   │       ├── test_main.py
-│   │       ├── test_data_analyzer_integration.py
-│   │       ├── test_shopify_integration.py
-│   │       ├── test_product_description.py
-│   │       ├── test_product_templates.py
-│   │       └── test_seo_optimizer.py
+│   │       └── test_product_description.py
 │   ├── order-manager/
 │   │   ├── Dockerfile
 │   │   ├── requirements.txt
 │   │   ├── api/
 │   │   │   ├── __init__.py
 │   │   │   ├── app.py
-│   │   │   ├── routers/
-│   │   │   │   ├── __init__.py
-│   │   │   │   ├── health.py
-│   │   │   │   ├── orders.py
-│   │   │   │   └── supplier_orders.py
-│   │   │   └── utils.py
+│   │   │   └── routers/
 │   │   ├── integrations/
 │   │   │   ├── __init__.py
 │   │   │   ├── shopify/
-│   │   │   │   ├── __init__.py
-│   │   │   │   └── client.py
 │   │   │   └── suppliers/
-│   │   │       ├── __init__.py
-│   │   │       ├── base.py
-│   │   │       ├── communicator.py
-│   │   │       ├── aliexpress.py
-│   │   │       └── cjdropshipping.py
 │   │   ├── models/
-│   │   │   ├── __init__.py
-│   │   │   ├── order.py
-│   │   │   ├── supplier_order.py
-│   │   │   └── shipping.py
 │   │   ├── services/
-│   │   │   ├── __init__.py
-│   │   │   ├── order_service.py
-│   │   │   ├── order_service_suppliers.py
-│   │   │   └── order_service_delivery.py
-│   │   ├── storage/
-│   │   │   ├── __init__.py
-│   │   │   └── order_repository.py
-│   │   ├── notifications/
-│   │   │   ├── __init__.py
-│   │   │   └── notification_manager.py
 │   │   └── tests/
-│   │       ├── __init__.py
-│   │       ├── test_aliexpress_supplier.py
-│   │       └── test_cjdropshipping_supplier.py
 │   └── dashboard/
 │       ├── css/
-│       │   └── style.css
 │       ├── js/
-│       │   └── dashboard.js
 │       └── index.html
 ├── data/
 ├── logs/
 ├── scripts/
-│   ├── deploy_dashboard.sh
-│   ├── optimize_nginx.sh
-│   └── backup.sh
 ├── .env
 └── docker-compose.yml
 ```
@@ -229,6 +206,11 @@ Le projet utilise une API centralisée qui comprend:
 ## Changements récents
 
 ### Mars 2025
+- **NOUVEAU** 🔥 : Module d'analyse de complémentarité pour identifier les produits associés et maximiser la valeur du panier
+- **NOUVEAU** 🔥 : Système de création de bundles intelligents avec suggestions de remises optimisées
+- **NOUVEAU** 🔥 : Fonctionnalités d'up-sell pour recommander des produits de gamme supérieure
+- **NOUVEAU** 🔥 : Implémentation d'un algorithme d'association rules mining (Apriori) pour détecter les produits achetés ensemble
+- **NOUVEAU** 🔥 : Tests unitaires complets pour le module d'analyse de complémentarité
 - **NOUVEAU** 🔥 : Implémentation complète du module d'analyse de tendances Google Trends (PyTrends) dans l'agent Data Analyzer
 - **NOUVEAU** 🔥 : Système avancé de détection de saisonnalité pour les produits, avec identification des pics mensuels
 - **NOUVEAU** 🔥 : Système de scoring sophistiqué pour évaluer le potentiel des produits en tendance
@@ -335,32 +317,41 @@ curl -X POST "http://votre-serveur:8000/agents/data-analyzer/action" \
   }'
 ```
 
-Pour identifier les produits en croissance :
+Pour identifier les produits complémentaires :
 
 ```bash
 # Exemple avec curl
 curl -X POST "http://votre-serveur:8000/agents/data-analyzer/action" \
   -H "Content-Type: application/json" \
   -d '{
-    "action": "get_rising_products",
-    "category": "electronics",
-    "geo": "FR",
-    "limit": 10
+    "action": "get_complementary_products",
+    "product_id": "smartphone-xyz",
+    "max_products": 5
   }'
 ```
 
-Pour analyser un produit spécifique :
+Pour suggérer des bundles de produits :
 
 ```bash
 # Exemple avec curl
 curl -X POST "http://votre-serveur:8000/agents/data-analyzer/action" \
   -H "Content-Type: application/json" \
   -d '{
-    "action": "analyze_product",
-    "product_name": "Écouteurs sans fil",
-    "product_keywords": ["écouteurs bluetooth", "écouteurs true wireless"],
-    "timeframes": ["short_term", "medium_term", "long_term"],
-    "geo": "FR"
+    "action": "create_bundles",
+    "product_ids": ["smartphone-xyz", "case-abc", "charger-123"],
+    "max_bundles": 3
+  }'
+```
+
+Pour analyser un panier existant et suggérer des améliorations :
+
+```bash
+# Exemple avec curl
+curl -X POST "http://votre-serveur:8000/agents/data-analyzer/action" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "analyze_cart",
+    "product_ids": ["smartphone-xyz", "case-abc"]
   }'
 ```
 
@@ -418,19 +409,6 @@ curl -X POST "http://votre-serveur:8000/agents/content-generator/action" \
   }'
 ```
 
-Pour optimiser un contenu existant :
-
-```bash
-curl -X POST "http://votre-serveur:8000/agents/content-generator/action" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "action": "optimize_content",
-    "content": "Votre contenu à optimiser...",
-    "content_type": "product_description",
-    "keywords": ["mot-clé 1", "mot-clé 2"]
-  }'
-```
-
 ### Agent Order Manager
 
 Pour gérer les commandes via l'API :
@@ -448,44 +426,6 @@ curl -X POST "http://votre-serveur:8000/agents/order-manager/suppliers/search" \
     "query": "smartphone accessories",
     "page": 1,
     "limit": 20
-  }'
-
-# Rechercher des produits sur CJ Dropshipping
-curl -X POST "http://votre-serveur:8000/agents/order-manager/suppliers/search" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "supplier": "cjdropshipping",
-    "query": "smartphone accessories",
-    "page": 1,
-    "limit": 20
-  }'
-
-# Créer une commande fournisseur
-curl -X POST "http://votre-serveur:8000/agents/order-manager/supplier-orders" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "order_id": "shopify_12345",
-    "supplier": "aliexpress",
-    "product_id": "aliexpress_product_id",
-    "quantity": 1,
-    "shipping_address": {
-      "name": "Client Test",
-      "address1": "123 Test Street",
-      "city": "Test City",
-      "zip": "12345",
-      "country": "FR"
-    }
-  }'
-
-# Vérifier le statut d'expédition
-curl -X GET "http://votre-serveur:8000/agents/order-manager/shipments/tracking-id" \
-  -H "Content-Type: application/json"
-
-# Annuler une commande
-curl -X POST "http://votre-serveur:8000/agents/order-manager/orders/123456789/cancel" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "reason": "Demande client : changement d\'avis"
   }'
 ```
 
@@ -508,6 +448,7 @@ python -m unittest discover -s tests
 
 # Exécuter un test spécifique
 python -m unittest tests.test_trends_analyzer
+python -m unittest tests.test_complementary_analyzer
 ```
 
 Les modules testés comprennent :
@@ -520,6 +461,8 @@ Les modules testés comprennent :
 - Intégration AliExpress
 - Intégration CJ Dropshipping
 - Analyseur de tendances Google Trends
+- Analyseur de complémentarité et système de bundles
+- Algorithme d'association rules mining
 
 ## Points d'amélioration identifiés
 
@@ -542,6 +485,7 @@ Les modules testés comprennent :
    - Intégrer les API SEO (SEMrush/Ahrefs) pour enrichir les données
    - Compléter les mécanismes de validation et d'apprentissage
    - Ajouter des tests unitaires supplémentaires pour toutes les fonctionnalités
+   - Améliorer l'analyseur de complémentarité avec l'ajout de données clients réelles
 
 2. **Amélioration de l'agent Order Manager**
    - Intégration avec d'autres fournisseurs dropshipping
@@ -554,6 +498,7 @@ Les modules testés comprennent :
    - Génération intelligente de sites avec templates par niche
    - Optimisation SEO intégrée
    - Amélioration des éléments de conversion (CRO)
+   - Intégration des suggestions de bundles et produits complémentaires
 
 4. **Extension de l'agent Content Generator** 
    - Phase 2 : Ajout des générateurs de pages catégories et articles de blog
@@ -628,6 +573,7 @@ Pour la prochaine session, voici ce qu'il reste à implémenter ou à mettre à 
    - Développer davantage le système de scoring multicritères pondéré
    - Mettre en œuvre les fonctionnalités d'analyse plus avancées (analyse de séries temporelles)
    - Améliorer l'interface utilisateur pour la visualisation des tendances
+   - Améliorer l'intégration du module de complémentarité avec le reste du système
 
 2. **Perfectionner l'intégration de l'agent Order Manager** :
    - Améliorer l'interface utilisateur pour le suivi des commandes dans le dashboard
