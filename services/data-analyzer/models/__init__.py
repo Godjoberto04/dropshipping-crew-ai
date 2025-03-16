@@ -5,5 +5,11 @@ Il inclut des systèmes de scoring, des analyseurs de marché et des modèles pr
 
 from models.scoring import ProductScorer
 from models.scoring.multicriteria import AdvancedProductScorer
+from models.complementary import ComplementaryAnalyzer, AssociationRulesMiner
 
-__all__ = ['ProductScorer', 'AdvancedProductScorer']
+__all__ = [
+    'ProductScorer', 
+    'AdvancedProductScorer',
+    'ComplementaryAnalyzer',
+    'AssociationRulesMiner'
+]
