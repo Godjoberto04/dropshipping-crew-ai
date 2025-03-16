@@ -11,6 +11,9 @@ L'agent Data Analyzer est responsable de l'analyse du marché, de l'identificati
 - Calcul du niveau de confiance pour chaque évaluation
 - Identification des forces et faiblesses des produits
 - Traitement par lots pour l'analyse de multiples produits
+- **NOUVEAU** 🔥 : Analyse de complémentarité pour identifier les produits associés
+- **NOUVEAU** 🔥 : Suggestions d'up-sell pour maximiser la valeur du panier
+- **NOUVEAU** 🔥 : Création intelligente de bundles de produits
 
 ## Architecture
 
@@ -21,7 +24,7 @@ data_sources/             # Sources de données externes
   ├── trends/             # Module d'analyse de tendances
   │   └── trends_analyzer.py  # Analyse via Google Trends
   ├── marketplaces/       # Analyse des marketplaces (à venir)
-  ├── seo/                # Analyse SEO (à venir)
+  ├── seo/                # Analyse SEO et Semrush
   └── social/             # Analyse des réseaux sociaux (à venir)
 
 models/                   # Modèles d'analyse et de prédiction
@@ -35,9 +38,13 @@ models/                   # Modèles d'analyse et de prédiction
   │       ├── profitability.py  # Rentabilité
   │       ├── operational.py  # Aspects opérationnels
   │       └── trend.py    # Tendances et saisonnalité
+  ├── complementary/      # Analyse de complémentarité
+  │   ├── association_rules.py  # Extraction de règles d'association
+  │   └── complementary_analyzer.py  # Analyse des produits complémentaires
 
 tests/                    # Tests unitaires
-  └── test_multicriteria_scorer.py  # Tests du système de scoring
+  ├── test_multicriteria_scorer.py  # Tests du système de scoring
+  └── test_complementary_analyzer.py  # Tests de l'analyse de complémentarité
 
 tools/                    # Outils utilitaires
   ├── api_client.py       # Client pour l'API centrale
@@ -90,6 +97,26 @@ Chaque évaluation est accompagnée d'un indice de confiance basé sur :
 - La consistance des scores entre les différentes catégories
 - La disponibilité des critères critiques (volume de recherche, marge, concurrence)
 
+## Analyse de complémentarité
+
+Le nouveau module d'analyse de complémentarité permet d'identifier les produits qui fonctionnent bien ensemble pour optimiser les stratégies de cross-selling et d'up-selling.
+
+### Fonctionnalités principales
+
+- **Identification de produits complémentaires** : Détection des produits fréquemment achetés ensemble
+- **Suggestions d'up-sell** : Identification des produits de gamme supérieure à proposer
+- **Création de bundles** : Génération de bundles de produits optimisés
+- **Analyse de panier** : Évaluation du contenu d'un panier et suggestions d'amélioration
+
+### Méthodes d'analyse
+
+Le module utilise plusieurs approches complémentaires :
+
+1. **Association rules mining** : Algorithme Apriori pour détecter les produits achetés ensemble
+2. **Analyse par catégorie** : Utilisation de paires de catégories complémentaires prédéfinies
+3. **Optimisation de prix** : Création de bundles avec remises stratégiques
+4. **Filtrage contextuel** : Adaptation des recommandations selon le contexte du produit
+
 ## Utilisation
 
 ### Exemple d'analyse d'un produit
@@ -122,6 +149,40 @@ weaknesses = result['weaknesses']
 explanation = result['explanation']
 
 print(f"Score: {overall_score}/100 - {recommendation}")
+```
+
+### Exemple d'utilisation de l'analyse de complémentarité
+
+```python
+from models.complementary import ComplementaryAnalyzer
+
+# Initialisation de l'analyseur
+analyzer = ComplementaryAnalyzer()
+
+# Chargement des données
+analyzer.load_transaction_data(transaction_history)
+analyzer.load_product_metadata(product_catalog)
+
+# Obtention des produits complémentaires
+complementary_products = analyzer.get_complementary_products('smartphone-xyz')
+
+# Identification d'opportunités d'up-sell
+upsell_options = analyzer.get_upsell_products('smartphone-xyz')
+
+# Création de bundles
+bundles = analyzer.bundle_products(['smartphone-xyz', 'phone-case-123'])
+
+# Analyse d'un panier
+cart_analysis = analyzer.analyze_cart(['smartphone-xyz', 'phone-case-123'])
+
+# Affichage des résultats
+print(f"Produits complémentaires: {len(complementary_products)}")
+for product in complementary_products[:3]:
+    print(f"- {product['product']} (score: {product['score']:.2f})")
+
+print(f"\nBundles suggérés: {len(bundles)}")
+for bundle in bundles:
+    print(f"- {bundle['name']}: {len(bundle['products'])} produits, {bundle['discount_percentage']}% de remise")
 ```
 
 ### API REST
@@ -174,8 +235,29 @@ Réponse :
       "+ Tendance (90/100): Forte tendance à la hausse"
     ],
     "confidence_statement": "L'évaluation est très fiable avec un niveau de confiance de 85%."
-  }
+  },
+  "complementary_products": [
+    {
+      "product": "headphone-case-456",
+      "score": 0.85,
+      "source": "association"
+    },
+    {
+      "product": "bluetooth-adapter-789",
+      "score": 0.72,
+      "source": "category"
+    }
+  ]
 }
+```
+
+Nouveaux endpoints pour la complémentarité :
+
+```
+POST /api/v1/complementary/products/{product_id}
+POST /api/v1/complementary/upsell/{product_id}
+POST /api/v1/complementary/bundles
+POST /api/v1/complementary/analyze-cart
 ```
 
 ## Tests
@@ -188,6 +270,7 @@ python -m unittest discover -s tests
 
 # Exécuter un test spécifique
 python -m unittest tests.test_multicriteria_scorer
+python -m unittest tests.test_complementary_analyzer
 ```
 
 ## Contributions
@@ -201,3 +284,5 @@ Ce module implémente [le plan d'amélioration de l'agent Data Analyzer](../docs
 - Système d'analyse des commentaires sociaux
 - Modules de détection d'anomalies et d'alertes
 - Système d'apprentissage basé sur les performances réelles
+- Amélioration de l'analyse de complémentarité avec des données client réelles
+- Optimisation automatique des bundles basée sur les performances
