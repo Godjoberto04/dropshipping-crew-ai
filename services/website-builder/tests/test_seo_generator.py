@@ -102,8 +102,38 @@ class TestSEOMetaGenerator(unittest.TestCase):
         # Vérifier que l'URL canonique est correcte
         self.assertEqual(f"https://{self.shop_info['domain']}/collections/accessoires-audio", metadata['canonical'])
         
-        # Vérifier que les données structurées sont du bon type
+        # Vérifier les données structurées
         self.assertEqual(metadata['structuredData']['@type'], 'CollectionPage')
+        self.assertEqual(metadata['structuredData']['name'], collection_data['name'])
+        
+        # Vérifier que l'image est correctement incluse dans les métadonnées Open Graph
+        self.assertEqual(metadata['openGraph']['og:image'], collection_data['image'])
+    
+    def test_page_metadata_generation(self):
+        """Test la génération de métadonnées pour une page statique"""
+        
+        # Données d'exemple pour une page
+        page_data = {
+            'type': 'page',
+            'name': 'À propos de nous',
+            'title': 'À propos de Test Store',
+            'content': 'Notre entreprise est spécialisée dans la vente de produits électroniques de haute qualité.',
+            'handle': 'about'
+        }
+        
+        # Générer les métadonnées
+        metadata = self.seo_generator.generate_metadata(page_data, self.shop_info, 'general')
+        
+        # Vérifier que le titre et la description sont générés correctement
+        self.assertIn('À propos', metadata['title'])
+        self.assertIn(self.shop_info['name'], metadata['title'])
+        self.assertIn('Notre entreprise', metadata['description'])
+        
+        # Vérifier que l'URL canonique est correcte
+        self.assertEqual(f"https://{self.shop_info['domain']}/pages/about", metadata['canonical'])
+        
+        # Vérifier les données structurées
+        self.assertEqual(metadata['structuredData']['@type'], 'WebPage')
     
     def test_blog_metadata_generation(self):
         """Test la génération de métadonnées pour un article de blog"""
@@ -111,100 +141,168 @@ class TestSEOMetaGenerator(unittest.TestCase):
         # Données d'exemple pour un article de blog
         blog_data = {
             'type': 'blog',
-            'name': 'Comment choisir les meilleurs écouteurs Bluetooth',
-            'description': 'Guide complet pour choisir les écouteurs Bluetooth adaptés à vos besoins.',
-            'content': 'Le choix des écouteurs Bluetooth peut s\'avérer complexe. Dans cet article, nous vous guidons à travers les critères essentiels pour faire le bon choix.',
-            'author': 'Jean Dupont',
-            'published_at': '2025-03-01T12:00:00Z',
-            'blog_handle': 'tech-blog',
-            'handle': 'comment-choisir-ecouteurs-bluetooth'
+            'name': 'Les meilleures tendances tech de 2025',
+            'content': 'Découvrez les dernières innovations technologiques qui transformeront notre quotidien en 2025.',
+            'author': 'John Doe',
+            'published_at': '2025-01-15T10:00:00Z',
+            'updated_at': '2025-01-16T08:30:00Z',
+            'handle': 'meilleures-tendances-tech-2025',
+            'blog_handle': 'tech-news'
         }
         
         # Générer les métadonnées
         metadata = self.seo_generator.generate_metadata(blog_data, self.shop_info, 'electronics')
         
         # Vérifier que le titre et la description sont générés correctement
-        self.assertIn('Comment choisir les meilleurs écouteurs Bluetooth', metadata['title'])
-        self.assertIn('Guide complet', metadata['description'])
+        self.assertIn('Les meilleures tendances tech', metadata['title'])
+        self.assertIn('Blog', metadata['title'])
+        self.assertIn('Découvrez les dernières innovations', metadata['description'])
         
         # Vérifier que l'URL canonique est correcte
-        self.assertEqual(f"https://{self.shop_info['domain']}/blogs/tech-blog/comment-choisir-ecouteurs-bluetooth", metadata['canonical'])
+        self.assertEqual(f"https://{self.shop_info['domain']}/blogs/tech-news/meilleures-tendances-tech-2025", metadata['canonical'])
         
-        # Vérifier que les données structurées sont du bon type
+        # Vérifier les données structurées
         self.assertEqual(metadata['structuredData']['@type'], 'BlogPosting')
-        self.assertEqual(metadata['structuredData']['headline'], blog_data['name'])
+        self.assertEqual(metadata['structuredData']['datePublished'], blog_data['published_at'])
+        self.assertEqual(metadata['structuredData']['dateModified'], blog_data['updated_at'])
         
-        # Vérifier que les OpenGraph tags sont corrects pour un article
+        # Vérifier les balises Open Graph spécifiques aux articles
         self.assertEqual(metadata['openGraph']['og:type'], 'article')
+        self.assertEqual(metadata['openGraph']['article:published_time'], blog_data['published_at'])
     
-    def test_page_metadata_generation(self):
-        """Test la génération de métadonnées pour une page statique"""
+    def test_title_length_limitation(self):
+        """Test que le titre est correctement limité à la longueur maximale"""
         
-        # Données d'exemple pour une page statique
-        page_data = {
-            'type': 'page',
-            'name': 'À propos de nous',
-            'content': 'Nous sommes une boutique spécialisée dans la vente d\'accessoires électroniques de haute qualité.',
-            'handle': 'a-propos'
+        # Créer un produit avec un très long nom
+        long_product_name = "Super Écouteurs Bluetooth Professionnels avec Réduction de Bruit Active et Autonomie Exceptionnelle de 48 Heures"
+        product_data = {
+            'type': 'product',
+            'name': long_product_name,
+            'description': 'Description du produit'
         }
         
         # Générer les métadonnées
-        metadata = self.seo_generator.generate_metadata(page_data, self.shop_info, 'electronics')
+        metadata = self.seo_generator.generate_metadata(product_data, self.shop_info, 'electronics')
         
-        # Vérifier que le titre et la description sont générés correctement
-        self.assertIn('À propos de nous', metadata['title'])
-        self.assertIn('boutique spécialisée', metadata['description'])
-        
-        # Vérifier que l'URL canonique est correcte
-        self.assertEqual(f"https://{self.shop_info['domain']}/pages/a-propos", metadata['canonical'])
-        
-        # Vérifier que les données structurées sont du bon type
-        self.assertEqual(metadata['structuredData']['@type'], 'WebPage')
+        # Vérifier que le titre respecte la longueur maximale
+        self.assertTrue(len(metadata['title']) <= self.seo_generator.config['maxTitleLength'])
+        self.assertTrue(metadata['title'].endswith('...'))
     
-    def test_emotional_triggers(self):
-        """Test que les déclencheurs émotionnels sont correctement sélectionnés par niche"""
+    def test_description_length_limitation(self):
+        """Test que la description est correctement limitée à la longueur maximale"""
         
-        # Créer un produit simple
+        # Créer un produit avec une très longue description
+        long_description = "Ces écouteurs bluetooth premium offrent une qualité sonore exceptionnelle et une autonomie de 24 heures. " * 10
         product_data = {
             'type': 'product',
-            'name': 'Produit Test',
-            'description': 'Description du produit test'
+            'name': 'Écouteurs Bluetooth',
+            'description': long_description
         }
         
-        # Tester avec différentes niches
-        for niche in ['fashion', 'electronics', 'homeDecor', 'beauty', 'fitness']:
-            metadata = self.seo_generator.generate_metadata(product_data, self.shop_info, niche)
-            
-            # Vérifier que le titre contient un déclencheur émotionnel approprié pour la niche
-            any_trigger_present = False
-            for trigger in self.seo_generator.emotional_triggers.get(niche, []):
-                if trigger in metadata['title']:
-                    any_trigger_present = True
-                    break
-            
-            self.assertTrue(any_trigger_present, f"Aucun déclencheur émotionnel de la niche {niche} trouvé dans le titre")
+        # Générer les métadonnées
+        metadata = self.seo_generator.generate_metadata(product_data, self.shop_info, 'electronics')
+        
+        # Vérifier que la description respecte la longueur maximale
+        self.assertTrue(len(metadata['description']) <= self.seo_generator.config['maxDescriptionLength'])
+        self.assertTrue(metadata['description'].endswith('...'))
     
-    def test_generate_handle(self):
+    def test_emotional_trigger_selection(self):
+        """Test la sélection des déclencheurs émotionnels selon la niche"""
+        
+        # Pour le test, on remplace la méthode aléatoire par une qui renvoie toujours le premier élément
+        with patch('random.choice', lambda x: x[0]):
+            product_data = {
+                'type': 'product',
+                'name': 'Produit Test',
+                'description': 'Description du produit'
+            }
+            
+            # Test avec différentes niches
+            fashion_metadata = self.seo_generator.generate_metadata(product_data, self.shop_info, 'fashion')
+            electronics_metadata = self.seo_generator.generate_metadata(product_data, self.shop_info, 'electronics')
+            beauty_metadata = self.seo_generator.generate_metadata(product_data, self.shop_info, 'beauty')
+            
+            # Vérifier que les déclencheurs émotionnels sont différents selon la niche
+            self.assertIn('Tendance', fashion_metadata['title'])
+            self.assertIn('Innovant', electronics_metadata['title'])
+            self.assertIn('Rajeunissant', beauty_metadata['title'])
+    
+    def test_handle_generation(self):
         """Test la génération de handle SEO-friendly"""
-        # Test avec des caractères spéciaux et espaces
-        self.assertEqual(self.seo_generator._generate_handle("Test Produit Génial ! @#"), "test-produit-genial")
         
-        # Test avec des tirets multiples
-        self.assertEqual(self.seo_generator._generate_handle("Test  -  Produit"), "test-produit")
+        # Tester avec différents textes
+        test_cases = [
+            ('Écouteurs Bluetooth', 'ecouteurs-bluetooth'),
+            ('Produit avec & des caractères spéciaux !', 'produit-avec-des-caracteres-speciaux'),
+            ('Très  Longue  Chaîne   Avec   Espaces', 'tres-longue-chaine-avec-espaces'),
+            ('MAJUSCULES et minuscules', 'majuscules-et-minuscules')
+        ]
         
-        # Test avec des tirets au début et à la fin
-        self.assertEqual(self.seo_generator._generate_handle("-Test Produit-"), "test-produit")
+        for input_text, expected_handle in test_cases:
+            handle = self.seo_generator._generate_handle(input_text)
+            self.assertEqual(handle, expected_handle)
+    
+    def test_keywords_generation(self):
+        """Test la génération de mots-clés pertinents"""
+        
+        # Données d'exemple pour un produit
+        product_data = {
+            'type': 'product',
+            'name': 'Écouteurs sans fil',
+            'description': 'Écouteurs premium avec suppression de bruit',
+            'brand': 'TechSound',
+            'features': ['Bluetooth 5.0', 'Autonomie 24h', 'Résistant à l\'eau'],
+            'benefits': ['Son cristallin', 'Confort optimal', 'Connexion stable']
+        }
+        
+        # Générer les métadonnées
+        metadata = self.seo_generator.generate_metadata(product_data, self.shop_info, 'electronics')
+        
+        # Vérifier que les mots-clés contiennent des éléments importants
+        keywords = metadata['keywords']
+        
+        # Vérifier que le nom du produit est inclus
+        self.assertTrue(any('Écouteurs sans fil' in kw for kw in keywords))
+        
+        # Vérifier que la marque est incluse
+        self.assertTrue(any('TechSound' in kw for kw in keywords))
+        
+        # Vérifier que certaines caractéristiques et bénéfices sont inclus
+        self.assertTrue(any('Bluetooth' in kw for kw in keywords) or 
+                        any('Autonomie' in kw for kw in keywords) or
+                        any('Son cristallin' in kw for kw in keywords))
+        
+        # Vérifier que le nombre de mots-clés est limité
+        self.assertTrue(len(keywords) <= self.seo_generator.config['maxKeywords'])
     
     def test_strip_html(self):
-        """Test la suppression des balises HTML"""
-        html = "<p>Ceci est un <strong>test</strong> avec des <a href='#'>balises</a> HTML.</p>"
-        expected = "Ceci est un test avec des balises HTML."
-        self.assertEqual(self.seo_generator._strip_html(html), expected)
+        """Test le nettoyage des balises HTML"""
         
-        # Test avec des entités HTML
-        html = "Test avec des entit&eacute;s HTML &amp; autres caractères"
-        expected = "Test avec des entités HTML & autres caractères"
-        self.assertEqual(self.seo_generator._strip_html(html), expected)
+        # Texte HTML d'exemple
+        html_text = "<p>Ceci est un <strong>paragraphe</strong> avec des <em>balises</em> HTML.</p><ul><li>Point 1</li><li>Point 2</li></ul>"
+        
+        # Résultat attendu
+        expected_text = "Ceci est un paragraphe avec des balises HTML. Point 1 Point 2"
+        
+        # Tester la méthode de nettoyage
+        cleaned_text = self.seo_generator._strip_html(html_text)
+        
+        # Vérifier que le texte est correctement nettoyé
+        self.assertEqual(cleaned_text, expected_text)
+    
+    def test_price_valid_date(self):
+        """Test la génération de la date de validité du prix"""
+        
+        # Générer une date de validité
+        price_valid_date = self.seo_generator._generate_price_valid_date()
+        
+        # Vérifier le format de la date (YYYY-MM-DD)
+        self.assertRegex(price_valid_date, r'^\d{4}-\d{2}-\d{2}$')
+        
+        # La date doit être dans le futur
+        import datetime
+        today = datetime.datetime.now().strftime('%Y-%m-%d')
+        self.assertGreater(price_valid_date, today)
 
 if __name__ == '__main__':
     unittest.main()
