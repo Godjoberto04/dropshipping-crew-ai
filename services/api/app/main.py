@@ -11,6 +11,9 @@ import aioredis
 import asyncpg
 from contextlib import asynccontextmanager
 
+# Import des routes
+from routes import data_analyzer
+
 # Modèles de données
 class ProductAnalysis(BaseModel):
     name: str
@@ -178,6 +181,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Inclure les routes des agents
+app.include_router(data_analyzer.router)
 
 @app.get("/")
 def read_root():
