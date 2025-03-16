@@ -1,275 +1,177 @@
-# Guide de l'Agent Site Updater
+# Agent Site Updater - Guide d'utilisation
 
-## Vue d'ensemble
+L'agent Site Updater est responsable de la mise à jour et de l'optimisation continue de votre boutique en ligne. Il est composé de plusieurs modules spécialisés qui travaillent ensemble pour améliorer différents aspects de votre site e-commerce.
 
-L'agent Site Updater est le cinquième agent de notre système de dropshipping autonome. Il est responsable de la maintenance et de l'optimisation continue du site e-commerce. Son rôle principal est d'assurer que le site reste compétitif, optimisé pour les moteurs de recherche, et offre la meilleure expérience utilisateur possible pour maximiser les conversions.
+## Modules disponibles
 
-> **⚠️ Note importante**: L'agent Site Updater est en cours de développement. Certains modules sont déjà disponibles tandis que d'autres sont en phase d'implémentation.
+L'agent Site Updater comprend les modules suivants :
 
-## Statut des modules
+1. **Price Monitor** : Surveillance et ajustement automatique des prix
+2. **A/B Testing** : Tests automatiques de variations pour optimiser les conversions
+3. **Product Rotation** : Rotation intelligente des produits mis en avant
+4. **SEO Optimization** : Optimisation continue du référencement naturel
+5. **Performance Monitor** : Surveillance et optimisation des performances du site
 
-| Module | Statut | Description |
-|--------|--------|-------------|
-| Price Monitor (Suivi des prix) | ✅ Opérationnel | Surveille et ajuste les prix en fonction de la concurrence |
-| A/B Testing (Tests A/B) | ✅ Opérationnel | Teste différentes variantes pour optimiser les conversions |
-| Product Rotation (Rotation des produits) | ✅ Opérationnel | Gère la rotation des produits mis en avant |
-| SEO Optimization (Optimisation SEO) | ✅ Opérationnel | Analyse et optimise le référencement du site |
+## Performance Monitor
 
-## Fonctionnalités principales
+Le module Performance Monitor est responsable de la surveillance et de l'optimisation des performances de votre site e-commerce. Il analyse en continu les métriques clés de performance, identifie les problèmes et applique automatiquement des optimisations pour améliorer la vitesse et l'expérience utilisateur de votre boutique.
 
-### 1. Surveillance des prix concurrents
+### Fonctionnalités clés
 
-Suit automatiquement les prix des produits similaires chez les concurrents afin d'adapter les prix de notre boutique pour rester compétitif.
+- **Analyse des Web Vitals** : Surveillance des métriques critiques comme LCP, CLS, FID et TTFB
+- **Optimisation automatique des ressources** : Minification des fichiers JS/CSS et optimisation des images
+- **Détection des problèmes de performance** : Identification des goulots d'étranglement et points d'amélioration
+- **Suivi des tendances** : Analyse de l'évolution des performances dans le temps
+- **Impact SEO** : Évaluation de l'impact des performances sur le référencement
+- **API complète** : Accès programmatique à toutes les fonctionnalités
 
-- **Fonction API**: `track_competitor_prices`
-- **Paramètres**:
-  ```json
-  {
-    "products": ["liste des IDs ou URLs de produits"],
-    "competitors": ["liste des URLs concurrentes"]
-  }
-  ```
+### Utilisation via l'API
 
-### 2. Ajustement dynamique des prix
+Le module expose une API RESTful complète pour l'intégration avec d'autres systèmes. Voici les principaux endpoints disponibles :
 
-Ajuste automatiquement les prix des produits en fonction de différentes stratégies (competitive, premium, value).
+#### Analyser les performances d'une URL
 
-- **Fonction API**: `adjust_product_prices`
-- **Paramètres**:
-  ```json
-  {
-    "products": ["liste des IDs ou URLs de produits"],
-    "strategy": "competitive",
-    "threshold": 0.05
-  }
-  ```
+```bash
+curl -X POST http://localhost:8005/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://votre-boutique.myshopify.com/products/exemple"}'
+```
 
-### 3. Rotation intelligente des produits mis en avant
+#### Optimiser les performances d'une URL
 
-Change périodiquement les produits mis en avant sur la page d'accueil et dans les collections en fonction des performances, des tendances saisonnières ou d'autres critères.
+```bash
+curl -X POST http://localhost:8005/optimize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://votre-boutique.myshopify.com/products/exemple",
+    "apply_automatically": true,
+    "minify_js_css": true,
+    "optimize_images": true,
+    "target_image_format": "webp",
+    "compress_resources": true
+  }'
+```
 
-- **Fonction API**: `rotate_featured_products`
-- **Paramètres**:
-  ```json
-  {
-    "sections": ["homepage", "featured", "collections"],
-    "strategy": "performance",
-    "max_products": 10
-  }
-  ```
+#### Configurer la surveillance périodique
 
-### 4. Tests A/B automatiques
+```bash
+curl -X POST http://localhost:8005/monitor \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://votre-boutique.myshopify.com/",
+    "interval_hours": 24,
+    "days": 7,
+    "alert_on_regression": true,
+    "regression_threshold": 10.0
+  }'
+```
 
-Crée et gère des tests A/B pour optimiser la présentation, les descriptions, les prix et d'autres éléments du site.
+#### Optimiser un lot d'images
 
-#### Création d'un test A/B
-
-- **Fonction API**: `create_ab_test`
-- **Paramètres**:
-  ```json
-  {
-    "test_name": "Nom du test",
-    "test_type": "layout",
-    "variants": [
-      {
-        "name": "Variante A",
-        "content": { "key": "value" }
-      },
-      {
-        "name": "Variante B",
-        "content": { "key": "value" }
-      }
+```bash
+curl -X POST http://localhost:8005/images/optimize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_urls": [
+      "https://votre-boutique.myshopify.com/cdn/images/produit1.jpg",
+      "https://votre-boutique.myshopify.com/cdn/images/produit2.jpg"
     ],
-    "duration": 604800,
-    "target_metric": "conversion_rate"
-  }
-  ```
-
-#### Suivi d'un test A/B
-
-- **Fonction API**: `monitor_ab_test`
-- **Paramètres**:
-  ```json
-  {
-    "test_id": "ID du test"
-  }
-  ```
-
-### 5. Optimisation SEO continue
-
-Analyse et optimise régulièrement les différents aspects SEO du site (méta-données, contenus, structure, etc.).
-
-- **Fonction API**: `optimize_seo_settings`
-- **Paramètres**:
-  ```json
-  {
-    "target_pages": ["liste des URLs de pages"],
-    "keywords": ["liste de mots-clés"],
-    "focus_areas": ["meta", "headings", "urls", "content"]
-  }
-  ```
-
-#### Analyse SEO d'une page
-
-- **Fonction API**: `analyze_page_seo`
-- **Paramètres**:
-  ```json
-  {
-    "url": "URL de la page",
-    "target_keywords": ["liste de mots-clés cibles"]
-  }
-  ```
-
-#### Scan SEO de l'ensemble du site
-
-- **Fonction API**: `scan_shop_pages`
-- **Paramètres**:
-  ```json
-  {
-    "shop_url": "URL de la boutique",
-    "max_pages": 50
-  }
-  ```
-
-### 6. Analyse des performances du site
-
-Surveille et analyse différentes métriques de performance du site pour identifier les points d'amélioration.
-
-- **Fonction API**: `analyze_site_performance`
-- **Paramètres**:
-  ```json
-  {
-    "metrics": ["speed", "mobile", "accessibility", "seo"],
-    "pages": ["homepage", "collection", "product", "cart", "checkout"]
-  }
-  ```
-
-## Architecture technique
-
-L'agent Site Updater est composé de plusieurs modules spécialisés :
-
-1. **CompetitorTracker** : Suivi et analyse des prix concurrents, ajustement des prix
-2. **ProductRotator** : Rotation intelligente des produits sur le site
-3. **ABTestManager** : Gestion des tests A/B et analyse des résultats
-4. **SEOOptimizationManager** : Optimisation SEO continue
-
-Chaque module est conçu pour fonctionner de manière autonome tout en communiquant avec les autres composants via l'API centralisée.
-
-## Intégration avec les autres agents
-
-### Data Analyzer
-
-Utilise les données du Data Analyzer pour :
-- Identifier les produits les plus performants pour la rotation
-- Détecter les tendances saisonnières pour l'ajustement des prix
-- Obtenir des mots-clés pertinents pour l'optimisation SEO
-
-### Website Builder
-
-Communique avec le Website Builder pour :
-- Mettre à jour les prix des produits
-- Modifier les produits mis en avant
-- Implémenter les variantes des tests A/B
-- Appliquer les optimisations SEO
-
-### Content Generator
-
-Interagit avec le Content Generator pour :
-- Optimiser les descriptions de produits
-- Générer du contenu pour les tests A/B
-- Créer du contenu optimisé SEO
-
-### Order Manager
-
-Utilise les données de l'Order Manager pour :
-- Analyser les taux de conversion par produit
-- Identifier les opportunités d'optimisation des prix
-
-## Exemples d'utilisation
-
-### Exemple 1: Suivi des prix concurrents
-
-```bash
-curl -X POST "http://votre-serveur:8000/agents/site-updater/action" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "action": "track_competitor_prices",
-    "params": {
-      "products": ["prod_123", "prod_456"],
-      "competitors": [
-        {
-          "name": "Concurrent A",
-          "product_url_template": "https://concurrenta.com/products/{product_name}"
-        },
-        {
-          "name": "Concurrent B",
-          "product_url_template": "https://concurrentb.com/shop/{product_name}"
-        }
-      ]
-    }
+    "target_format": "webp"
   }'
 ```
 
-### Exemple 2: Création d'un test A/B
+### Intégration avec les autres modules
+
+Le module Performance Monitor est conçu pour fonctionner en synergie avec les autres modules de l'agent Site Updater :
+
+- Avec **Price Monitor** : Optimisation des performances lors des mises à jour de prix
+- Avec **A/B Testing** : Analyse des performances des différentes variantes de test
+- Avec **Product Rotation** : Optimisation des performances lors des rotations de produits
+- Avec **SEO Optimization** : Amélioration des aspects de performance impactant le référencement
+
+### Métriques surveillées
+
+Le module surveille les métriques de performance suivantes :
+
+| Métrique | Description | Seuil recommandé |
+|----------|-------------|------------------|
+| **Largest Contentful Paint (LCP)** | Temps de chargement du plus grand élément visible | < 2.5 secondes |
+| **First Input Delay (FID)** | Temps de réponse à la première interaction utilisateur | < 100 ms |
+| **Cumulative Layout Shift (CLS)** | Stabilité visuelle pendant le chargement | < 0.1 (sans unité) |
+| **Time To First Byte (TTFB)** | Temps de réponse initial du serveur | < 600 ms |
+| **Page Load Time** | Temps de chargement complet de la page | < 3 secondes |
+| **Server Response Time** | Temps de réponse du serveur | < 500 ms |
+
+### Configuration
+
+Le module peut être configuré via des variables d'environnement dans le fichier `.env` :
+
+```env
+# Configuration de base
+API_URL=http://localhost:8000/api
+PERFORMANCE_MONITOR_PORT=8005
+
+# Informations d'authentification Shopify
+SHOPIFY_API_KEY=votre_api_key
+SHOPIFY_API_SECRET=votre_api_secret
+SHOPIFY_STORE_URL=votre-boutique.myshopify.com
+SHOPIFY_ACCESS_TOKEN=votre_access_token
+
+# Configuration des seuils (optionnel, valeurs par défaut fournies)
+PERFORMANCE_PAGE_LOAD_THRESHOLD=3.0
+PERFORMANCE_LCP_THRESHOLD=2.5
+PERFORMANCE_CLS_THRESHOLD=0.1
+PERFORMANCE_FID_THRESHOLD=0.1
+PERFORMANCE_TTFB_THRESHOLD=0.6
+```
+
+## Price Monitor
+
+[Documentation du module Price Monitor]
+
+## A/B Testing
+
+[Documentation du module A/B Testing]
+
+## Product Rotation
+
+[Documentation du module Product Rotation]
+
+## SEO Optimization
+
+[Documentation du module SEO Optimization]
+
+## Intégration globale
+
+L'agent Site Updater coordonne tous ces modules pour une optimisation holistique de votre boutique. Les modules partagent des données et des insights pour maximiser l'efficacité globale.
+
+### Tableau de bord unifié
+
+Vous pouvez accéder à un tableau de bord unifié pour surveiller et contrôler tous les aspects de l'agent Site Updater à l'adresse `http://localhost/dashboard/site-updater`.
+
+### API centralisée
+
+Tous les modules sont accessibles via l'API centralisée du système, en plus de leurs APIs individuelles :
 
 ```bash
-curl -X POST "http://votre-serveur:8000/agents/site-updater/action" \
+curl -X GET http://localhost:8000/api/site-updater/status
+```
+
+### Automatisation et planification
+
+Vous pouvez configurer des tâches automatisées pour tous les modules via l'interface de planification :
+
+```bash
+curl -X POST http://localhost:8000/api/scheduler/create \
   -H "Content-Type: application/json" \
   -d '{
-    "action": "create_ab_test",
-    "params": {
-      "test_name": "Test bouton d\'achat",
-      "test_type": "button",
-      "variants": [
-        {
-          "name": "Bouton vert",
-          "content": {
-            "button_color": "#4CAF50",
-            "button_text": "Ajouter au panier"
-          }
-        },
-        {
-          "name": "Bouton rouge",
-          "content": {
-            "button_color": "#F44336",
-            "button_text": "Acheter maintenant"
-          }
-        }
-      ],
-      "duration": 1209600,
-      "target_metric": "conversion_rate"
-    }
+    "module": "site-updater",
+    "task": "performance_scan",
+    "schedule": "0 0 * * *",
+    "params": {"url": "https://votre-boutique.myshopify.com/"}
   }'
 ```
 
-### Exemple 3: Optimisation SEO
+## Résolution des problèmes courants
 
-```bash
-curl -X POST "http://votre-serveur:8000/agents/site-updater/action" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "action": "optimize_seo_settings",
-    "params": {
-      "target_pages": [
-        "https://votre-boutique.com/products/prod_1",
-        "https://votre-boutique.com/collections/bestsellers"
-      ],
-      "keywords": ["chaussures", "running", "sport"],
-      "focus_areas": ["meta", "headings", "content"]
-    }
-  }'
-```
-
-## Prochaines étapes de développement
-
-1. **Finalisation des intégrations entre modules** : Améliorer les connexions entre les différents modules de l'agent Site Updater.
-2. **Optimisation des performances** : Améliorer l'efficacité des algorithmes d'analyse et d'optimisation.
-3. **Extension du monitoring** : Ajouter des systèmes de surveillance plus avancés pour suivre l'impact des optimisations.
-4. **Tests d'intégration complets** : Mettre en place des tests d'intégration entre l'agent Site Updater et les autres agents.
-5. **Dashboard d'analyse** : Développer une interface visuelle pour présenter les résultats des optimisations et tests.
-
-## Ressources complémentaires
-
-- [Détails techniques de l'agent Site Updater](../architecture/agents.md#site-updater)
-- [API de l'agent Site Updater](../architecture/api.md#site-updater-api)
-- [Plans d'amélioration](../roadmap/next-steps.md#site-updater)
+Pour plus d'informations sur la résolution des problèmes, consultez la [documentation de dépannage](../troubleshooting.md).
