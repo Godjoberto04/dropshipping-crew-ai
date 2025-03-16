@@ -29,6 +29,7 @@ L'agent Data Analyzer utilise une architecture modulaire Python avec des classes
 - Fournit des données au **Website Builder** pour la sélection des produits à mettre en avant
 - Alimente le **Content Generator** avec des informations sur les tendances et les points forts à mettre en avant
 - Guide l'**Order Manager** dans la sélection des produits à commander en priorité
+- Fournit des données d'analyse au **Site Updater** pour l'optimisation du site
 
 ### État actuel et limitations
 - ✅ Modules TrendsAnalyzer et ComplementaryAnalyzer entièrement fonctionnels
@@ -62,6 +63,7 @@ L'agent Website Builder utilise une architecture orientée API avec une approche
 - Reçoit des données du **Data Analyzer** pour la structuration du catalogue
 - Intègre le contenu créé par le **Content Generator**
 - Communique avec l'**Order Manager** pour la mise à jour des stocks
+- Reçoit des instructions du **Site Updater** pour les optimisations continues
 
 ### État actuel et limitations
 - ✅ Configuration de base d'une boutique Shopify
@@ -96,6 +98,7 @@ L'agent Content Generator utilise une architecture asynchrone moderne basée sur
 - Reçoit des données du **Data Analyzer** sur les produits et tendances
 - Fournit du contenu optimisé au **Website Builder** pour intégration
 - Collabore avec l'**Order Manager** pour les descriptions de produits spécifiques
+- Reçoit des demandes d'optimisation du **Site Updater** pour améliorer le contenu existant
 
 ### État actuel et limitations
 - ✅ Génération de descriptions produits optimisées
@@ -130,6 +133,7 @@ L'agent Order Manager utilise une architecture API REST complète avec une base 
 - Reçoit des informations sur les produits du **Data Analyzer**
 - Se coordonne avec le **Website Builder** pour les mises à jour de stocks
 - Utilise le contenu du **Content Generator** pour les communications clients
+- Fournit des données de performance au **Site Updater** pour l'analyse des produits
 
 ### État actuel et limitations
 - ✅ Intégration complète avec AliExpress et CJ Dropshipping
@@ -139,34 +143,39 @@ L'agent Order Manager utilise une architecture API REST complète avec une base 
 - 🔄 Intégration avec d'autres fournisseurs à développer
 - 🔄 Dashboard dédié pour le suivi des commandes à améliorer
 
-## 5. Site Updater 🔜
+## 5. Site Updater 🔨
 
-Agent prévu pour maintenir le site à jour en continu sans intervention humaine.
+Agent chargé de maintenir et d'optimiser le site e-commerce en continu.
 
-### Fonctionnalités prévues
+### Fonctionnalités principales
 - Surveillance automatique des prix concurrents
 - Ajustement dynamique des prix selon la demande et la concurrence
-- Mise à jour automatique des stocks
 - Rotation intelligente des produits mis en avant
-- Optimisation continue des pages produits basée sur les performances
-- A/B testing automatisé des éléments du site
+- Tests A/B automatisés pour optimiser les conversions
+- Optimisation SEO continue des pages
+- Analyse des performances du site et recommandations d'amélioration
 
-### Modules planifiés
-- **CompetitorMonitor**: Surveillance des concurrents et de leurs prix
-- **PricingOptimizer**: Ajustement dynamique des prix
-- **InventoryManager**: Gestion des stocks et approvisionnements
-- **PerformanceAnalyzer**: Analyse des performances par produit/catégorie
-- **TestingEngine**: Système d'A/B testing automatisé
+### Modules clés
+- **CompetitorTracker**: Surveillance des concurrents et analyse des prix
+- **ProductRotator**: Rotation intelligente des produits en vitrine
+- **ABTestManager**: Gestion des tests A/B et analyse des résultats
+- **SEOOptimizationManager**: Optimisation continue du référencement
 
-### Architecture prévue
-L'agent Site Updater sera conçu avec une architecture basée sur des tâches planifiées (cron jobs) et des déclencheurs événementiels, couplée à un système de règles configurables pour les prises de décision automatisées.
+### Architecture
+L'agent Site Updater utilise une architecture modulaire avec des services spécialisés qui s'exécutent périodiquement ou sont déclenchés par des événements spécifiques. Il s'appuie sur un système de règles configurables pour la prise de décision automatisée et utilise des algorithmes d'apprentissage pour optimiser les stratégies au fil du temps.
 
-### Interaction prévue avec les autres agents
-- Utilisera les données du **Data Analyzer** pour les décisions d'optimisation
-- Commandera des mises à jour au **Website Builder**
-- Adaptera le contenu via le **Content Generator** selon les performances
-- Coordonnera les stocks avec l'**Order Manager**
+### Interaction avec les autres agents
+- Reçoit des données d'analyse du **Data Analyzer** pour les décisions d'optimisation
+- Envoie des commandes de mise à jour au **Website Builder**
+- Demande des générations ou optimisations de contenu au **Content Generator**
+- Analyse les données de vente de l'**Order Manager** pour évaluer les performances
 
-### État actuel
-- 🔜 En phase de conception
-- 🔜 Développement prévu pour Q2 2025
+### État actuel et limitations
+- 🔨 Architecture de base en développement
+- 🔨 Module CompetitorTracker en développement
+- 🔨 Module ProductRotator en développement
+- 🔨 Module ABTestManager en développement
+- 🔨 Module SEOOptimizationManager en développement
+- 🕐 Intégration complète avec les APIs Shopify à implémenter
+- 🕐 Tests unitaires à développer
+- 🕐 Interface utilisateur de contrôle à créer
