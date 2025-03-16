@@ -5,3 +5,5 @@ schedule==1.2.0
 redis==4.6.0
 ShopifyAPI==13.1.0
 pydantic==1.10.12
+pytz==2024.1
+datetime>=5.0
