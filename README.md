@@ -1,127 +1,73 @@
-# Dropshipping Crew AI
+# Dropshipping Autonome avec Crew AI
 
-## Vue d'ensemble
+> **⚠️ PRIORITÉ #1: Restructuration de la documentation**  
+> La réorganisation complète de la documentation est actuellement notre priorité principale.  
+> Veuillez consulter le [plan d'action détaillé](docs/plan-restructuration-documentation.md) avant toute contribution.
 
-Dropshipping Crew AI est un projet innovant qui vise à automatiser entièrement les opérations d'une boutique de dropshipping grâce à un système d'agents IA spécialisés qui travaillent ensemble via une architecture API centralisée. Chaque agent est responsable d'une fonction spécifique de la chaîne de valeur du dropshipping, de l'analyse de marché à la gestion des commandes.
+Système autonome de dropshipping géré par une flotte d'agents d'IA utilisant Crew AI.
 
-## Architecture du système
+## 🔍 Vue d'ensemble
 
-Le système est composé de 5 agents principaux qui communiquent entre eux via une API REST centralisée:
+Système entièrement autonome pour gérer une boutique de dropshipping en exploitant les capacités de Claude et des agents IA. Le système est composé de 5 agents spécialisés qui travaillent ensemble pour analyser le marché, créer et gérer une boutique Shopify, générer du contenu optimisé SEO, gérer les commandes et maintenir le site à jour.
 
-1. **Data Analyzer**: Analyse les tendances du marché, identifie les produits prometteurs et évalue leur potentiel de rentabilité
-2. **Website Builder**: Génère et optimise les sites e-commerce pour les produits sélectionnés
-3. **Content Generator**: Crée du contenu marketing, descriptions produits et matériel promotionnel
-4. **Order Manager**: Gère les commandes, le suivi et la logistique (en développement)
-5. **Site Updater**: Maintient le site à jour avec de nouveaux produits et ajustements de prix (en développement)
+## 🚀 Déploiement actuel
 
-### API Centralisée
+- **Serveur**: Scaleway DEV1-M (Paris)
+- **IP**: 163.172.160.102
+- **API**: http://163.172.160.102/api/
+- **Dashboard**: http://163.172.160.102/
+- **Statut actuel**: Agents Data Analyzer, Website Builder, Content Generator et Order Manager opérationnels
 
-L'API centralisée joue un rôle crucial en permettant:
-- La communication entre les agents
-- L'orchestration des workflows
-- Le stockage et la gestion des données
-- L'accès unifié aux fonctionnalités du système
+## 📊 Architecture du système
 
-## Agents
+- [Présentation détaillée des agents](docs/architecture/agents.md)
+- [Infrastructure technique](docs/architecture/infrastructure.md)
+- [Architecture d'API centralisée](docs/architecture/api.md)
+- [Structure du projet](docs/architecture/structure.md)
 
-### Data Analyzer
+## 📝 Mises à jour
 
-L'agent Data Analyzer combine plusieurs sources de données et techniques d'analyse avancées pour:
+- [Mars 16, 2025 🔥](docs/updates/2025-03-16.md) - Nouveau module d'analyse de complémentarité, système de bundles intelligents
+- [Mars 15, 2025 🔥](docs/updates/2025-03-15.md) - Implémentation complète du module d'analyse Google Trends, analyse prédictive
+- [Toutes les mises à jour](docs/updates/index.md)
 
-- Analyser les tendances de recherche via Google Trends
-- Évaluer le potentiel SEO des produits avec l'intégration Ahrefs
-- Scraper les marketplaces concurrentes pour l'analyse de prix
-- Prédire les performances futures avec des modèles de séries temporelles
-- Identifier les anomalies et opportunités du marché
-- Évaluer la complémentarité entre produits pour maximiser la valeur du panier
+## 💻 Installation et déploiement
 
-#### Module d'analyse de complémentarité
+- [Prérequis](docs/setup/prerequisites.md)
+- [Guide d'installation](docs/setup/installation.md)
 
-Le module d'analyse de complémentarité permet d'identifier les produits qui se vendent bien ensemble, optimisant ainsi les stratégies d'upsell et de cross-sell. Fonctionnalités principales:
+## 🔧 Utilisation des agents
 
-- Algorithmes de recommandation basés sur les comportements d'achat
-- Identification de patterns d'achat complémentaires
-- Calcul des corrélations entre catégories de produits
-- Suggestions pour la création de bundles et offres groupées
-- API dédiée pour l'intégration avec les autres agents
+- [Agent Data Analyzer](docs/usage/data-analyzer.md)
+- [Agent Website Builder](docs/usage/website-builder.md)
+- [Agent Content Generator](docs/usage/content-generator.md)
+- [Agent Order Manager](docs/usage/order-manager.md)
 
-### Website Builder
+## 🧪 Tests unitaires
 
-L'agent Website Builder génère automatiquement des sites e-commerce optimisés pour la conversion, comprenant:
+- [Tests et couverture](docs/testing/overview.md)
 
-- Création de pages produits optimisées pour le SEO
-- Intégration d'éléments de confiance et preuves sociales
-- Optimisation de l'expérience utilisateur et des tunnels d'achat
-- Système de templates par niche de produits
-- Performance optimisée pour tous les appareils
-- Générateur de métadonnées SEO intelligent pour toutes les pages
+## 📈 Plans d'amélioration
 
-#### Générateur de métadonnées SEO
+- [Points d'amélioration identifiés](docs/roadmap/improvement-points.md)
+- [Prochaines étapes](docs/roadmap/next-steps.md)
 
-Le générateur de métadonnées SEO est un nouveau composant qui crée automatiquement des balises meta optimisées pour le référencement:
+## 📑 Documentation complémentaire
 
-- Génération de titres et descriptions personnalisés par page et produit
-- Création de balises Open Graph pour une meilleure présence sur les réseaux sociaux
-- Optimisation du balisage Schema.org pour les rich snippets dans les résultats de recherche
-- Mots-clés spécifiques à la niche et adaptés à chaque produit
-- Analyse concurrentielle pour améliorer le positionnement
+- [Guide complet de la documentation](docs/index.md)
 
-Pour voir un exemple d'utilisation, consultez [l'exemple du générateur SEO](examples/seo_generator_example.py).
+## 💰 Coûts du projet
 
-### Content Generator
+- [Détail des coûts](docs/costs.md)
 
-L'agent Content Generator crée tout le contenu textuel nécessaire:
+## ❓ Dépannage
 
-- Descriptions de produits convaincantes
-- Articles de blog optimisés pour le SEO
-- Emails marketing et séquences de nurturing
-- Textes publicitaires pour les campagnes marketing
-- FAQ et pages d'information
+- [Guide de dépannage](docs/troubleshooting.md)
 
-## Infrastructure technique
+## 📧 Contact et support
 
-Le système est construit sur une infrastructure moderne et évolutive:
+Ce projet est développé par un passionné d'IA autonome. Pour toute question ou suggestion, ouvrez une issue sur ce dépôt ou contactez le propriétaire.
 
-- Backend: FastAPI, Python 3.9+
-- Base de données: PostgreSQL, Redis (cache)
-- Serveur: Scaleway DEV1-M
-- Intégrations: APIs Claude, Shopify, et services tiers
-
-## Statut du projet
-
-Le projet est actuellement en développement actif. Les composants suivants sont fonctionnels:
-
-- ✅ Data Analyzer: Version 1.0 complète avec analyses de tendances et prédictions
-- ✅ Website Builder: Version 1.0 avec génération de sites e-commerce
-- 🔄 Content Generator: En développement, version alpha disponible
-- 📅 Order Manager: Planifié pour le prochain trimestre
-- 📅 Site Updater: Planifié pour le prochain trimestre
-
-## Documentation
-
-Une documentation détaillée est disponible pour chaque agent:
-
-- [Guide d'utilisation du Data Analyzer](docs/data_analyzer_guide.md)
-- [Documentation technique du Website Builder](docs/website_builder_technical.md)
-- [Guide des API](docs/api_reference.md)
-- [Guide du générateur de métadonnées SEO](docs/seo_generator_guide.md)
-
-## Exemples d'utilisation
-
-Des exemples pratiques sont disponibles pour vous aider à comprendre et utiliser les différentes fonctionnalités:
-
-- [Exemples d'utilisation](examples/README.md)
-
-## Contribuer
-
-Les contributions sont les bienvenues! Pour contribuer:
-
-1. Forkez le repository
-2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/amazing-feature`)
-3. Committez vos changements (`git commit -m 'Add some amazing feature'`)
-4. Poussez vers la branche (`git push origin feature/amazing-feature`)
-5. Ouvrez une Pull Request
-
-## Licence
+## 📄 Licence
 
 Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
