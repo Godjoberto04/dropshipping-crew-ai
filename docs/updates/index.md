@@ -1,59 +1,70 @@
-# Historique des mises à jour
+# Index des mises à jour
 
-Ce document présente l'historique chronologique des mises à jour apportées au projet.
+## Mars 2025
 
-## 2025
+### [18 Mars 2025](2025-03-18.md)
+**Implémentation du module SEO Optimization pour l'agent Site Updater**
+- Création du module SEOOptimizationManager avec analyse SEO complète
+- Implémentation des fonctionnalités de recommandation et d'optimisation automatique
+- Intégration des utilitaires SEO pour la génération de données structurées
+- Documentation et mise à jour des guides d'utilisation
 
-### Mars
+### [17 Mars 2025](2025-03-17.md) 
+**Début du développement de l'agent Site Updater**
+- Architecture de base de l'agent Site Updater
+- Développement des modules Price Monitor, A/B Testing et Product Rotation
+- Documentation préliminaire de l'agent
 
-- [16 Mars 2025 - Restructuration de la documentation 📚](2025-03-16-doc-restructuration.md)
-  - Restructuration complète de la documentation du projet avec une nouvelle organisation
-  - Création de guides d'utilisation détaillés pour chaque agent
-  - Documentation approfondie des tests et stratégies de test
-  - Élaboration d'une feuille de route détaillée avec points d'amélioration et calendrier
+### [16 Mars 2025](2025-03-16.md)
+**Module d'analyse de complémentarité et bundles intelligents**
+- Nouveau module d'analyse des produits complémentaires
+- Système de création de bundles basé sur les comportements d'achat
+- Optimisation des recommandations de produits associés
 
-- [16 Mars 2025 - Module de complémentarité 🔥](2025-03-16.md)
-  - Module d'analyse de complémentarité pour identifier les produits associés
-  - Système de création de bundles intelligents avec suggestions de remises optimisées
-  - Fonctionnalités d'up-sell pour recommander des produits de gamme supérieure
-  - Implémentation d'un algorithme d'association rules mining (Apriori) pour détecter les produits achetés ensemble
-  - Tests unitaires complets pour le module d'analyse de complémentarité
+### [15 Mars 2025](2025-03-15.md)
+**Module Google Trends et analyse prédictive**
+- Implémentation complète de l'intégration Google Trends
+- Système de détection de saisonnalité pour les produits
+- Analyse prédictive des tendances à venir
+- Optimisation des performances du module Data Analyzer
 
-- [15 Mars 2025 🔥](2025-03-15.md)
-  - Implémentation complète du module d'analyse Google Trends (PyTrends) dans l'agent Data Analyzer
-  - Système avancé de détection de saisonnalité pour les produits, avec identification des pics mensuels
-  - Système de scoring sophistiqué pour évaluer le potentiel des produits en tendance
-  - Fonctionnalités de comparaison de produits entre eux avec métriques détaillées
-  - Génération de conclusions et recommandations personnalisées pour le dropshipping
-  - Tests unitaires pour valider le module TrendsAnalyzer
-  - Système de cache optimisé pour l'agent Data Analyzer avec sérialisation intelligente des DataFrames
-  - Ajout des fonctionnalités de détection de produits en tendance montante par catégorie
+## Février 2025
 
-### Février 
+### [28 Février 2025](2025-02-28.md)
+**Amélioration de l'agent Content Generator**
+- Support pour de nouvelles niches (maison, beauté)
+- Optimisation de l'intégration avec l'API Claude
+- Amélioration des templates de description de produits
 
-- [28 Février 2025](2025-02-28.md)
-  - Intégration complète de l'agent Order Manager avec support pour AliExpress et CJ Dropshipping
-  - Tests unitaires pour les intégrations AliExpress et CJ Dropshipping
-  - Documentation détaillée pour l'agent Order Manager et ses intégrations
-  - Architecture modulaire pour l'intégration avec les fournisseurs dropshipping
-  - Système de notification pour informer les clients des changements de statut des commandes
+### [20 Février 2025](2025-02-20.md)
+**Amélioration de l'agent Website Builder**
+- Intégration avec l'API Shopify 2.0
+- Support pour la personnalisation avancée des thèmes
+- Système d'organisation dynamique des catégories
 
-- [20 Février 2025](2025-02-20.md)
-  - Suite complète de tests unitaires pour l'agent Content Generator (intégrations, client API, templates, etc.)
-  - Implémentation complète de l'agent Content Generator avec capacité de génération de descriptions de produits optimisées SEO
-  - Support pour plusieurs niches (mode, électronique, maison, beauté) avec templates spécialisés
+### [15 Février 2025](2025-02-15.md)
+**Lancement de l'agent Order Manager**
+- Intégration complète avec AliExpress et CJ Dropshipping
+- Synchronisation bidirectionnelle avec Shopify
+- Algorithme de sélection de fournisseurs
+- API REST pour la gestion des commandes
 
-- [15 Février 2025](2025-02-15.md)
-  - Développement des tests unitaires pour les intégrations API et les templates de produits
-  - Mise à jour du dashboard avec JavaScript amélioré et visualisations des données
-  - Adoption d'une stratégie d'intégration de ressources communautaires de qualité pour accélérer le développement
+### [10 Février 2025](2025-02-10.md)
+**Mise à jour de l'infrastructure**
+- Migration vers un nouveau serveur Scaleway
+- Optimisation de la configuration Docker
+- Amélioration des performances de l'API centralisée
 
-- [10 Février 2025](2025-02-10.md)
-  - Migration de l'agent Data Analyzer des outils CrewAI/LangChain vers des classes Python standards pour une meilleure stabilité
-  - Implémentation de l'agent Website Builder pour Shopify avec intégration API complète
-  - Mise à jour de l'API pour prendre en charge les opérations du Website Builder
-  - Mise en place d'un système modulaire pour la gestion des thèmes, la configuration de la boutique et la navigation
+## Janvier 2025
 
-## Plans de mise à jour future
+### [25 Janvier 2025](2025-01-25.md)
+**Lancement de l'agent Data Analyzer**
+- Première version du système d'analyse de marché
+- Intégration initiale avec Google Trends
+- Implémentation du système de scoring de produits
 
-- [Roadmap Q2 2025](../roadmap/next-steps.md) - Consultez notre plan détaillé pour les fonctionnalités à venir
+### [15 Janvier 2025](2025-01-15.md)
+**Mise en place de l'architecture de base**
+- Configuration de l'infrastructure Docker
+- Développement de l'API centralisée
+- Intégration de la librairie Crew AI
