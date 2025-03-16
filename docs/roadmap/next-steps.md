@@ -11,6 +11,12 @@ Ce document présente les étapes concrètes prévues pour l'évolution du syst�
 | T4 2025   | Intelligence et automatisation | Amélioration des capacités d'IA, automatisation avancée |
 | T1 2026   | Multi-boutiques et scaling | Support multi-boutiques, amélioration du scaling horizontal |
 
+## Nouvelle initiative : Dashboard Centralisé (T2 2025)
+
+Une nouvelle initiative majeure a été ajoutée au roadmap : le développement d'un **Dashboard Centralisé** pour piloter l'ensemble des agents et surveiller le système global. Cette initiative est considérée comme prioritaire pour améliorer l'expérience utilisateur et faciliter la gestion quotidienne du système.
+
+Pour les détails complets de cette initiative, consultez le [Plan de développement du Dashboard](dashboard-development-plan.md).
+
 ## Agent Data Analyzer
 
 ### Phase 1 : Optimisation des performances (T2 2025)
