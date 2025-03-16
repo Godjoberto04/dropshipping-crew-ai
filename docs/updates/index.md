@@ -6,7 +6,13 @@ Ce document présente l'historique chronologique des mises à jour apportées au
 
 ### Mars
 
-- [16 Mars 2025 🔥](2025-03-16.md)
+- [16 Mars 2025 - Restructuration de la documentation 📚](2025-03-16-doc-restructuration.md)
+  - Restructuration complète de la documentation du projet avec une nouvelle organisation
+  - Création de guides d'utilisation détaillés pour chaque agent
+  - Documentation approfondie des tests et stratégies de test
+  - Élaboration d'une feuille de route détaillée avec points d'amélioration et calendrier
+
+- [16 Mars 2025 - Module de complémentarité 🔥](2025-03-16.md)
   - Module d'analyse de complémentarité pour identifier les produits associés
   - Système de création de bundles intelligents avec suggestions de remises optimisées
   - Fonctionnalités d'up-sell pour recommander des produits de gamme supérieure
