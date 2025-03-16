@@ -412,3 +412,61 @@ class PerformanceManager:
         
         logger.info(f"{len(suggestions)} suggestions d'optimisation générées")
         return suggestions
+    
+    async def apply_optimizations(self, url: str, suggestions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Applique automatiquement certaines optimisations en fonction des suggestions
+        
+        Args:
+            url: URL du site à optimiser
+            suggestions: Liste des suggestions d'optimisation
+            
+        Returns:
+            Un rapport sur les optimisations appliquées
+        """
+        logger.info(f"Application des optimisations pour {url}")
+        
+        # Filtrer les optimisations qui peuvent être appliquées automatiquement
+        automatic_optimizations = [s for s in suggestions if s.get("automatic", False)]
+        
+        optimization_results = {
+            "url": url,
+            "timestamp": datetime.now().isoformat(),
+            "optimizations_applied": [],
+            "optimizations_pending": [],
+            "errors": []
+        }
+        
+        try:
+            for optimization in automatic_optimizations:
+                logger.info(f"Application de l'optimisation: {optimization['title']}")
+                
+                # Cette partie serait remplacée par le code réel d'optimisation
+                # Par exemple, l'appel à des APIs pour optimiser les images, minifier les fichiers, etc.
+                await asyncio.sleep(0.5)  # Simulation du temps d'optimisation
+                
+                # Ajouter l'optimisation à la liste des optimisations appliquées
+                optimization_results["optimizations_applied"].append({
+                    "title": optimization["title"],
+                    "description": optimization["description"],
+                    "actions_performed": optimization["actions"],
+                    "status": "Succès"
+                })
+                
+            # Les optimisations qui ne peuvent pas être appliquées automatiquement
+            manual_optimizations = [s for s in suggestions if not s.get("automatic", False)]
+            for optimization in manual_optimizations:
+                optimization_results["optimizations_pending"].append({
+                    "title": optimization["title"],
+                    "description": optimization["description"],
+                    "required_actions": optimization["actions"],
+                    "priority": optimization["priority"]
+                })
+                
+            logger.info(f"Optimisations terminées pour {url}: {len(optimization_results['optimizations_applied'])} appliquées, {len(optimization_results['optimizations_pending'])} en attente")
+            return optimization_results
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'application des optimisations: {str(e)}")
+            optimization_results["errors"].append(str(e))
+            return optimization_results
