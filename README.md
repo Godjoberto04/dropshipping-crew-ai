@@ -66,6 +66,8 @@ Le générateur de métadonnées SEO est un nouveau composant qui crée automati
 - Mots-clés spécifiques à la niche et adaptés à chaque produit
 - Analyse concurrentielle pour améliorer le positionnement
 
+Pour voir un exemple d'utilisation, consultez [l'exemple du générateur SEO](examples/seo_generator_example.py).
+
 ### Content Generator
 
 L'agent Content Generator crée tout le contenu textuel nécessaire:
@@ -102,6 +104,13 @@ Une documentation détaillée est disponible pour chaque agent:
 - [Guide d'utilisation du Data Analyzer](docs/data_analyzer_guide.md)
 - [Documentation technique du Website Builder](docs/website_builder_technical.md)
 - [Guide des API](docs/api_reference.md)
+- [Guide du générateur de métadonnées SEO](docs/seo_generator_guide.md)
+
+## Exemples d'utilisation
+
+Des exemples pratiques sont disponibles pour vous aider à comprendre et utiliser les différentes fonctionnalités:
+
+- [Exemples d'utilisation](examples/README.md)
 
 ## Contribuer
 
