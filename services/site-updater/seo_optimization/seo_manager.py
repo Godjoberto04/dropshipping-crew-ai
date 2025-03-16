@@ -263,3 +263,240 @@ class SEOOptimizationManager:
             }
         finally:
             await self._close_session()
+    
+    def _calculate_seo_scores(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Calcule les scores SEO pour chaque métrique.
+        
+        Args:
+            metrics: Dictionnaire des métriques mesurées
+            
+        Returns:
+            Scores SEO calculés
+        """
+        scores = {}
+        
+        for metric, value in metrics.items():
+            if metric in self.recommended_scores:
+                rec = self.recommended_scores[metric]
+                
+                # Pour les métriques où une valeur entre min et max est idéale
+                if "min" in rec and "max" in rec:
+                    if value < rec["min"]:
+                        # Trop bas
+                        score = (value / rec["min"]) * 100
+                    elif value > rec["max"]:
+                        # Trop élevé
+                        if metric in ["h1_count"]:  # Métriques où l'excès est mauvais
+                            score = max(0, 100 - ((value - rec["max"]) * 25))  # Pénalité pour excès
+                        else:
+                            score = 100  # Pour des métriques comme content_length, l'excès n'est pas pénalisé
+                    else:
+                        # Dans la plage idéale
+                        score = 100
+                else:
+                    # Métriques simples
+                    score = value
+                
+                scores[metric] = min(100, max(0, score))
+        
+        # Score global (moyenne pondérée)
+        weights = {
+            "title_length": 1.5,
+            "meta_description_length": 1.5,
+            "h1_count": 1.0,
+            "keyword_density": 2.0,
+            "internal_links": 1.0,
+            "img_alt_ratio": 1.0,
+            "content_length": 2.0
+        }
+        
+        total_weight = sum(weights.get(metric, 1.0) for metric in scores.keys())
+        weighted_score = sum(score * weights.get(metric, 1.0) for metric, score in scores.items())
+        overall_score = weighted_score / total_weight if total_weight > 0 else 0
+        
+        scores["overall"] = min(100, max(0, overall_score))
+        return scores
+    
+    def _generate_recommendations(self, analysis: Dict[str, Any]) -> List[Dict[str, str]]:
+        """
+        Génère des recommandations SEO basées sur l'analyse.
+        
+        Args:
+            analysis: Résultats de l'analyse SEO
+            
+        Returns:
+            Liste de recommandations
+        """
+        recommendations = []
+        
+        # Titre
+        title_length = analysis["basic_info"]["title_length"]
+        if title_length < self.recommended_scores["title_length"]["min"]:
+            recommendations.append({
+                "priority": "high",
+                "category": "meta",
+                "issue": "Titre trop court",
+                "recommendation": f"Allongez le titre à au moins {self.recommended_scores['title_length']['min']} caractères pour améliorer son impact SEO."
+            })
+        elif title_length > self.recommended_scores["title_length"]["max"]:
+            recommendations.append({
+                "priority": "medium",
+                "category": "meta",
+                "issue": "Titre trop long",
+                "recommendation": f"Raccourcissez le titre à maximum {self.recommended_scores['title_length']['max']} caractères pour éviter qu'il soit tronqué dans les résultats de recherche."
+            })
+        
+        # Meta description
+        meta_description_length = analysis["basic_info"]["meta_description_length"]
+        if meta_description_length < self.recommended_scores["meta_description_length"]["min"]:
+            recommendations.append({
+                "priority": "high",
+                "category": "meta",
+                "issue": "Meta description trop courte",
+                "recommendation": f"Allongez la meta description à au moins {self.recommended_scores['meta_description_length']['min']} caractères pour améliorer son impact dans les résultats de recherche."
+            })
+        elif meta_description_length > self.recommended_scores["meta_description_length"]["max"]:
+            recommendations.append({
+                "priority": "medium",
+                "category": "meta",
+                "issue": "Meta description trop longue",
+                "recommendation": f"Raccourcissez la meta description à maximum {self.recommended_scores['meta_description_length']['max']} caractères pour éviter qu'elle soit tronquée."
+            })
+        elif meta_description_length == 0:
+            recommendations.append({
+                "priority": "high",
+                "category": "meta",
+                "issue": "Meta description manquante",
+                "recommendation": "Ajoutez une meta description qui résume de façon attrayante le contenu de la page."
+            })
+        
+        # H1
+        h1_count = len(analysis["content_analysis"]["h1_tags"])
+        if h1_count == 0:
+            recommendations.append({
+                "priority": "high",
+                "category": "headings",
+                "issue": "H1 manquant",
+                "recommendation": "Ajoutez une balise H1 qui définit clairement le sujet principal de la page."
+            })
+        elif h1_count > 1:
+            recommendations.append({
+                "priority": "medium",
+                "category": "headings",
+                "issue": "Trop de balises H1",
+                "recommendation": "Limitez-vous à une seule balise H1 par page pour une meilleure structure SEO."
+            })
+        
+        # Contenu
+        word_count = analysis["content_analysis"]["word_count"]
+        if word_count < self.recommended_scores["content_length"]["min"]:
+            recommendations.append({
+                "priority": "high",
+                "category": "content",
+                "issue": "Contenu trop court",
+                "recommendation": f"Enrichissez le contenu pour atteindre au moins {self.recommended_scores['content_length']['min']} mots pour améliorer la pertinence SEO."
+            })
+        
+        # Densité de mots-clés
+        keyword_densities = analysis["keyword_analysis"]["keyword_density"]
+        for keyword, density in keyword_densities.items():
+            if density < self.recommended_scores["keyword_density"]["min"]:
+                recommendations.append({
+                    "priority": "medium",
+                    "category": "keywords",
+                    "issue": f"Densité faible pour '{keyword}'",
+                    "recommendation": f"Augmentez la fréquence du mot-clé '{keyword}' dans le contenu pour atteindre une densité d'au moins {self.recommended_scores['keyword_density']['min']}%."
+                })
+            elif density > self.recommended_scores["keyword_density"]["max"]:
+                recommendations.append({
+                    "priority": "medium",
+                    "category": "keywords",
+                    "issue": f"Densité excessive pour '{keyword}'",
+                    "recommendation": f"Réduisez la fréquence du mot-clé '{keyword}' pour éviter le bourrage de mots-clés."
+                })
+        
+        # Images alt
+        images_total = analysis["image_analysis"]["total_images"]
+        alt_ratio = analysis["image_analysis"]["alt_text_ratio"]
+        if images_total > 0 and alt_ratio < 100:
+            recommendations.append({
+                "priority": "medium",
+                "category": "images",
+                "issue": "Images sans attribut alt",
+                "recommendation": "Ajoutez des attributs alt descriptifs à toutes les images pour améliorer l'accessibilité et le SEO."
+            })
+        
+        # Liens internes
+        internal_links_count = analysis["link_analysis"]["internal_links_count"]
+        if internal_links_count < self.recommended_scores["internal_links"]["min"]:
+            recommendations.append({
+                "priority": "medium",
+                "category": "links",
+                "issue": "Peu de liens internes",
+                "recommendation": "Ajoutez plus de liens internes pour améliorer la navigation et la distribution du PageRank."
+            })
+        
+        # Données structurées
+        if analysis["structured_data"]["count"] == 0:
+            recommendations.append({
+                "priority": "low",
+                "category": "structured_data",
+                "issue": "Absence de données structurées",
+                "recommendation": "Ajoutez des données structurées (JSON-LD) pour améliorer l'affichage dans les résultats de recherche."
+            })
+        
+        return recommendations
+    
+    def _get_schema_type(self, schema_data: Dict[str, Any]) -> str:
+        """
+        Extrait le type d'un schéma JSON-LD.
+        
+        Args:
+            schema_data: Données du schéma
+            
+        Returns:
+            Type du schéma
+        """
+        if isinstance(schema_data, dict):
+            return schema_data.get("@type", "Unknown")
+        return "Unknown"
+    
+    async def generate_optimized_meta(self, page_url: str, content: str, keywords: List[str]) -> Dict[str, str]:
+        """
+        Génère des balises meta optimisées pour une page.
+        
+        Args:
+            page_url: URL de la page
+            content: Contenu principal de la page
+            keywords: Mots-clés cibles
+            
+        Returns:
+            Balises meta optimisées
+        """
+        # Dans une implémentation réelle, cette fonction pourrait utiliser l'API Claude
+        # pour générer des méta-données optimisées en fonction du contenu et des mots-clés
+        
+        # Simuler un délai pour l'appel à l'API
+        await asyncio.sleep(0.5)
+        
+        # Exemple de génération simplifiée
+        keywords_str = ", ".join(keywords)
+        title = f"Découvrez nos {keywords[0]} de qualité | {' '.join(keywords[:2]).capitalize()}"
+        
+        # Limiter la longueur du titre
+        if len(title) > self.recommended_scores["title_length"]["max"]:
+            title = title[:self.recommended_scores["title_length"]["max"] - 3] + "..."
+        
+        # Générer la meta description
+        description = f"Explorez notre sélection de {keywords[0]} de haute qualité. Trouvez les meilleurs {' et '.join(keywords[:2])} pour répondre à vos besoins."
+        
+        # Limiter la longueur de la description
+        if len(description) > self.recommended_scores["meta_description_length"]["max"]:
+            description = description[:self.recommended_scores["meta_description_length"]["max"] - 3] + "..."
+        
+        return {
+            "title": title,
+            "meta_description": description,
+            "meta_keywords": keywords_str
+        }
