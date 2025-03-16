@@ -1,8 +1,8 @@
 # Dropshipping Autonome avec Crew AI
 
-> **⚠️ PRIORITÉ #1: Restructuration de la documentation**  
-> La réorganisation complète de la documentation est actuellement notre priorité principale.  
-> Veuillez consulter le [plan d'action détaillé](docs/plan-restructuration-documentation.md) avant toute contribution.
+> **✅ MISE À JOUR: La restructuration de la documentation a été complétée**  
+> La documentation a été entièrement réorganisée selon le [plan d'action détaillé](docs/plan-restructuration-documentation.md).
+> Notre nouveau focus est désormais le développement de l'agent Site Updater.
 
 Système autonome de dropshipping géré par une flotte d'agents d'IA utilisant Crew AI.
 
@@ -16,7 +16,12 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
 - **IP**: 163.172.160.102
 - **API**: http://163.172.160.102/api/
 - **Dashboard**: http://163.172.160.102/
-- **Statut actuel**: Agents Data Analyzer, Website Builder, Content Generator et Order Manager opérationnels
+- **Statut actuel**: 
+  - ✅ Agent Data Analyzer: Opérationnel
+  - ✅ Agent Website Builder: Opérationnel
+  - ✅ Agent Content Generator: Opérationnel
+  - ✅ Agent Order Manager: Opérationnel
+  - 🔨 Agent Site Updater: En développement
 
 ## 📊 Architecture du système
 
@@ -27,6 +32,7 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
 
 ## 📝 Mises à jour
 
+- [Mars 17, 2025 🆕](docs/updates/2025-03-17.md) - Début du développement de l'agent Site Updater
 - [Mars 16, 2025 🔥](docs/updates/2025-03-16.md) - Nouveau module d'analyse de complémentarité, système de bundles intelligents
 - [Mars 15, 2025 🔥](docs/updates/2025-03-15.md) - Implémentation complète du module d'analyse Google Trends, analyse prédictive
 - [Toutes les mises à jour](docs/updates/index.md)
@@ -42,6 +48,7 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
 - [Agent Website Builder](docs/usage/website-builder.md)
 - [Agent Content Generator](docs/usage/content-generator.md)
 - [Agent Order Manager](docs/usage/order-manager.md)
+- [Agent Site Updater](docs/usage/site-updater.md) (Documentation préliminaire)
 
 ## 🧪 Tests unitaires
 
