@@ -166,6 +166,41 @@ services:
       - ./services/order-manager:/app
       - ./logs:/app/logs
 
+  # Nouvel agent Site Updater - Performance Monitor
+  performance-monitor:
+    build:
+      context: ./services/site-updater/performance_monitor
+    container_name: ${PROJECT_NAME}-performance-monitor
+    depends_on:
+      - postgres
+      - redis
+      - api
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - API_URL=http://api:8000
+      - AGENT_ID=performance-monitor
+      - AGENT_VERSION=1.0.0
+      - SHOPIFY_API_KEY=${SHOPIFY_API_KEY}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET}
+      - SHOPIFY_STORE_URL=${SHOPIFY_STORE_URL}
+      - SHOPIFY_ACCESS_TOKEN=${SHOPIFY_ACCESS_TOKEN}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - PERFORMANCE_MONITOR_PORT=${PERFORMANCE_MONITOR_PORT:-8005}
+    ports:
+      - "${PERFORMANCE_MONITOR_PORT:-8005}:8000"
+    restart: unless-stopped
+    networks:
+      - backend
+      - frontend
+    volumes:
+      - ./services/site-updater/performance_monitor:/app
+      - ./logs:/app/logs
+
 networks:
   backend:
   frontend:
