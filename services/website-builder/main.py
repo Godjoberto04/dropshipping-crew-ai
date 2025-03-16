@@ -11,6 +11,7 @@ from tools.theme_manager import ThemeManager
 from tools.store_setup import StoreSetup
 from tools.navigation import NavigationManager
 from tools.api_client import ApiClient
+from tools.seo_generator import SEOMetaGenerator
 
 # Configuration du logging
 os.makedirs('/app/logs', exist_ok=True)
@@ -52,6 +53,13 @@ shopify_client = ShopifyClient()
 theme_manager = ThemeManager(shopify_client)
 store_setup = StoreSetup(shopify_client)
 navigation_manager = NavigationManager(shopify_client)
+
+# Initialisation du générateur de métadonnées SEO
+seo_generator = SEOMetaGenerator(config={
+    'shop_name': os.getenv('SHOP_NAME', 'Boutique Dropshipping'),
+    'includeEmotionalTriggers': True,
+    'includeBenefits': True
+})
 
 # Fonction pour configurer une nouvelle boutique
 def setup_new_store(store_config: Dict[str, Any], task_id: str = None) -> Dict[str, Any]:
@@ -100,10 +108,45 @@ def setup_new_store(store_config: Dict[str, Any], task_id: str = None) -> Dict[s
             api_client.update_task_status(
                 task_id=task_id,
                 status="in_progress",
-                progress=60
+                progress=50
             )
         
-        # Étape 3: Configuration de la navigation
+        # Étape 3: Configuration SEO si une niche est spécifiée
+        seo_result = {}
+        if store_config.get('niche'):
+            logger.info(f"Configuration SEO pour la niche : {store_config.get('niche')}")
+            shop_info = {
+                'name': store_config.get('name', 'Boutique Dropshipping'),
+                'domain': shopify_client.get_store_url().replace('https://', ''),
+                'twitter_handle': store_config.get('twitter_handle', '')
+            }
+            
+            # Configuration SEO pour la page d'accueil
+            home_page = {
+                'type': 'page',
+                'name': 'Accueil',
+                'title': f"Boutique {store_config.get('niche', '')}",
+                'content': store_config.get('description', f"Boutique de {store_config.get('niche', '')}")
+            }
+            
+            seo_metadata = seo_generator.generate_metadata(
+                home_page, 
+                shop_info, 
+                store_config.get('niche', 'general')
+            )
+            
+            logger.info(f"Métadonnées SEO générées : {json.dumps(seo_metadata, indent=2)}")
+            seo_result = {'homepage_seo': seo_metadata}
+        
+        # Mettre à jour le statut si task_id est fourni
+        if task_id:
+            api_client.update_task_status(
+                task_id=task_id,
+                status="in_progress",
+                progress=70
+            )
+        
+        # Étape 4: Configuration de la navigation
         navigation_config = store_config.get('navigation', {})
         navigation_result = navigation_manager.configure_navigation(navigation_config)
         
@@ -116,6 +159,7 @@ def setup_new_store(store_config: Dict[str, Any], task_id: str = None) -> Dict[s
             "setup_details": {
                 "basic_config": basic_config_result,
                 "theme": theme_result,
+                "seo": seo_result,
                 "navigation": navigation_result
             },
             "setup_metadata": {
@@ -160,10 +204,10 @@ def setup_new_store(store_config: Dict[str, Any], task_id: str = None) -> Dict[s
         
         return error_result
 
-# Fonction pour ajouter un produit à la boutique
+# Fonction pour ajouter un produit à la boutique avec optimisation SEO
 def add_product(product_data: Dict[str, Any], task_id: str = None) -> Dict[str, Any]:
     """
-    Ajoute un nouveau produit à la boutique Shopify
+    Ajoute un nouveau produit à la boutique Shopify avec optimisation SEO
     
     Args:
         product_data: Données du produit à ajouter
@@ -187,6 +231,68 @@ def add_product(product_data: Dict[str, Any], task_id: str = None) -> Dict[str, 
         logger.info("Ajout du produit...")
         start_time = time.time()
         
+        # Génération des métadonnées SEO si une niche est spécifiée
+        seo_metadata = {}
+        if product_data.get('niche'):
+            logger.info(f"Génération des métadonnées SEO pour le produit dans la niche : {product_data.get('niche')}")
+            
+            # Préparer les informations de la boutique
+            shop_info = {
+                'name': os.getenv('SHOP_NAME', 'Boutique Dropshipping'),
+                'domain': shopify_client.get_store_url().replace('https://', '')
+            }
+            
+            # Adapter les données du produit pour le générateur SEO
+            seo_product_data = {
+                'type': 'product',
+                'name': product_data.get('title', ''),
+                'description': product_data.get('body_html', ''),
+                'price': product_data.get('variants', [{}])[0].get('price', ''),
+                'currency': 'EUR',
+                'images': product_data.get('images', []),
+                'brand': product_data.get('vendor', shop_info['name']),
+                'features': product_data.get('features', []),
+                'benefits': product_data.get('benefits', [])
+            }
+            
+            # Générer les métadonnées SEO
+            seo_metadata = seo_generator.generate_metadata(
+                seo_product_data,
+                shop_info,
+                product_data.get('niche', 'general')
+            )
+            
+            logger.info(f"Métadonnées SEO générées pour le produit")
+            
+            # Ajouter les métadonnées au produit si elles sont bien générées
+            if seo_metadata.get('title'):
+                product_data['metafields_global_title_tag'] = seo_metadata.get('title')
+            
+            if seo_metadata.get('description'):
+                product_data['metafields_global_description_tag'] = seo_metadata.get('description')
+            
+            # Ajouter les mots-clés comme tags du produit
+            if seo_metadata.get('keywords') and isinstance(seo_metadata.get('keywords'), list):
+                if 'tags' not in product_data or not product_data['tags']:
+                    product_data['tags'] = ', '.join(seo_metadata.get('keywords'))
+                else:
+                    existing_tags = product_data['tags'].split(', ')
+                    all_tags = existing_tags + seo_metadata.get('keywords')
+                    # Éliminer les doublons
+                    unique_tags = []
+                    for tag in all_tags:
+                        if tag.lower() not in [t.lower() for t in unique_tags]:
+                            unique_tags.append(tag)
+                    product_data['tags'] = ', '.join(unique_tags)
+        
+        # Mettre à jour le statut si task_id est fourni
+        if task_id:
+            api_client.update_task_status(
+                task_id=task_id,
+                status="in_progress",
+                progress=50
+            )
+        
         # Ajout du produit via l'API Shopify
         product_result = shopify_client.create_product(product_data)
         
@@ -196,6 +302,7 @@ def add_product(product_data: Dict[str, Any], task_id: str = None) -> Dict[str, 
         # Construire les résultats finaux
         results_json = {
             "product": product_result,
+            "seo_metadata": seo_metadata,
             "product_metadata": {
                 "execution_time_seconds": execution_time,
                 "timestamp": time.time(),
@@ -221,6 +328,93 @@ def add_product(product_data: Dict[str, Any], task_id: str = None) -> Dict[str, 
         error_result = {
             "error": f"Erreur lors de l'ajout du produit: {str(e)}",
             "product_metadata": {
+                "execution_time_seconds": time.time() - start_time,
+                "timestamp": time.time(),
+                "task_id": task_id
+            }
+        }
+        
+        # Mettre à jour le statut si task_id est fourni
+        if task_id:
+            api_client.update_task_status(
+                task_id=task_id,
+                status="failed",
+                progress=100,
+                result=error_result
+            )
+        
+        return error_result
+
+# Fonction pour générer les métadonnées SEO d'une page
+def generate_seo_metadata(page_data: Dict[str, Any], task_id: str = None) -> Dict[str, Any]:
+    """
+    Génère les métadonnées SEO pour une page
+    
+    Args:
+        page_data: Données de la page (type, nom, contenu, niche, etc.)
+        task_id: Identifiant de la tâche (pour le suivi via l'API)
+        
+    Returns:
+        Métadonnées SEO générées
+    """
+    logger.info(f"Génération des métadonnées SEO pour : {page_data.get('name', 'Page inconnue')}")
+    
+    # Mettre à jour le statut de la tâche si un task_id est fourni
+    if task_id:
+        api_client.update_task_status(
+            task_id=task_id,
+            status="in_progress",
+            progress=10
+        )
+    
+    try:
+        # Exécution de la génération SEO
+        start_time = time.time()
+        
+        # Préparer les informations de la boutique
+        shop_info = {
+            'name': os.getenv('SHOP_NAME', 'Boutique Dropshipping'),
+            'domain': shopify_client.get_store_url().replace('https://', '')
+        }
+        
+        # Générer les métadonnées SEO
+        seo_metadata = seo_generator.generate_metadata(
+            page_data,
+            shop_info,
+            page_data.get('niche', 'general')
+        )
+        
+        execution_time = time.time() - start_time
+        logger.info(f"Génération SEO terminée en {execution_time:.2f} secondes")
+        
+        # Construire les résultats finaux
+        results_json = {
+            "seo_metadata": seo_metadata,
+            "metadata": {
+                "execution_time_seconds": execution_time,
+                "timestamp": time.time(),
+                "task_id": task_id
+            }
+        }
+        
+        logger.info(f"Génération réussie des métadonnées SEO pour : {page_data.get('name', 'Page inconnue')}")
+        
+        # Enregistrer les résultats via l'API si task_id est fourni
+        if task_id:
+            api_client.update_task_status(
+                task_id=task_id,
+                status="completed",
+                progress=100,
+                result=results_json
+            )
+        
+        return results_json
+            
+    except Exception as e:
+        logger.error(f"Erreur lors de la génération des métadonnées SEO: {str(e)}")
+        error_result = {
+            "error": f"Erreur lors de la génération des métadonnées SEO: {str(e)}",
+            "metadata": {
                 "execution_time_seconds": time.time() - start_time,
                 "timestamp": time.time(),
                 "task_id": task_id
@@ -299,6 +493,26 @@ def check_pending_tasks():
                     args=(product_data, task_id)
                 ).start()
                 
+            elif action == "generate_seo":
+                page_data = task.get("params", {}).get("page_data", {})
+                
+                if not page_data:
+                    logger.warning(f"Tâche {task_id} sans données de page, marquée comme échouée")
+                    api_client.update_task_status(
+                        task_id=task_id,
+                        status="failed",
+                        result={"error": "Aucune donnée de page spécifiée"}
+                    )
+                    continue
+                
+                logger.info(f"Exécution de la tâche de génération SEO {task_id}")
+                
+                # Lancer la génération SEO dans un thread séparé
+                threading.Thread(
+                    target=generate_seo_metadata,
+                    args=(page_data, task_id)
+                ).start()
+                
             else:
                 logger.warning(f"Tâche {task_id} avec action inconnue '{action}', marquée comme échouée")
                 api_client.update_task_status(
@@ -324,12 +538,13 @@ def run_scheduled_tasks():
         agent_id="website-builder",
         status="online",
         details={
-            "version": "1.0.0",
+            "version": "1.1.0",
             "capabilities": [
                 "Store configuration",
                 "Theme management",
                 "Navigation setup",
-                "Product management"
+                "Product management",
+                "SEO optimization"
             ]
         }
     )
@@ -357,6 +572,7 @@ if __name__ == "__main__":
             "name": "Test Dropshipping Store",
             "currency": "EUR",
             "language": "fr",
+            "niche": "electronics",
             "theme": {
                 "name": "Dawn",
                 "colors": {
