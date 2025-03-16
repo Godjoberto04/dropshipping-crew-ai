@@ -4,11 +4,18 @@
 
 L'agent Site Updater est le cinquième agent de notre système de dropshipping autonome. Il est responsable de la maintenance et de l'optimisation continue du site e-commerce. Son rôle principal est d'assurer que le site reste compétitif, optimisé pour les moteurs de recherche, et offre la meilleure expérience utilisateur possible pour maximiser les conversions.
 
-> **⚠️ Note importante**: L'agent Site Updater est actuellement en développement. Cette documentation est préliminaire et sera mise à jour au fur et à mesure que l'agent évolue.
+> **⚠️ Note importante**: L'agent Site Updater est en cours de développement. Certains modules sont déjà disponibles tandis que d'autres sont en phase d'implémentation.
+
+## Statut des modules
+
+| Module | Statut | Description |
+|--------|--------|-------------|
+| Price Monitor (Suivi des prix) | ✅ Opérationnel | Surveille et ajuste les prix en fonction de la concurrence |
+| A/B Testing (Tests A/B) | ✅ Opérationnel | Teste différentes variantes pour optimiser les conversions |
+| Product Rotation (Rotation des produits) | ✅ Opérationnel | Gère la rotation des produits mis en avant |
+| SEO Optimization (Optimisation SEO) | ✅ Opérationnel | Analyse et optimise le référencement du site |
 
 ## Fonctionnalités principales
-
-L'agent Site Updater offre les fonctionnalités suivantes :
 
 ### 1. Surveillance des prix concurrents
 
@@ -99,6 +106,28 @@ Analyse et optimise régulièrement les différents aspects SEO du site (méta-d
     "target_pages": ["liste des URLs de pages"],
     "keywords": ["liste de mots-clés"],
     "focus_areas": ["meta", "headings", "urls", "content"]
+  }
+  ```
+
+#### Analyse SEO d'une page
+
+- **Fonction API**: `analyze_page_seo`
+- **Paramètres**:
+  ```json
+  {
+    "url": "URL de la page",
+    "target_keywords": ["liste de mots-clés cibles"]
+  }
+  ```
+
+#### Scan SEO de l'ensemble du site
+
+- **Fonction API**: `scan_shop_pages`
+- **Paramètres**:
+  ```json
+  {
+    "shop_url": "URL de la boutique",
+    "max_pages": 50
   }
   ```
 
@@ -213,25 +242,31 @@ curl -X POST "http://votre-serveur:8000/agents/site-updater/action" \
   }'
 ```
 
-## Statut de développement
+### Exemple 3: Optimisation SEO
 
-L'agent Site Updater est actuellement en développement actif avec le statut des modules suivant :
+```bash
+curl -X POST "http://votre-serveur:8000/agents/site-updater/action" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "optimize_seo_settings",
+    "params": {
+      "target_pages": [
+        "https://votre-boutique.com/products/prod_1",
+        "https://votre-boutique.com/collections/bestsellers"
+      ],
+      "keywords": ["chaussures", "running", "sport"],
+      "focus_areas": ["meta", "headings", "content"]
+    }
+  }'
+```
 
-| Module | Statut |
-|--------|--------|
-| CompetitorTracker | En développement |
-| ProductRotator | En développement |
-| ABTestManager | En développement |
-| SEOOptimizationManager | En développement |
+## Prochaines étapes de développement
 
-## Prochaines étapes
-
-1. Finalisation de l'architecture de base des modules
-2. Implémentation des fonctionnalités de suivi des prix concurrents
-3. Développement du système de tests A/B
-4. Intégration des optimisations SEO automatiques
-5. Tests d'intégration avec les autres agents
-6. Tests en environnement de production
+1. **Finalisation des intégrations entre modules** : Améliorer les connexions entre les différents modules de l'agent Site Updater.
+2. **Optimisation des performances** : Améliorer l'efficacité des algorithmes d'analyse et d'optimisation.
+3. **Extension du monitoring** : Ajouter des systèmes de surveillance plus avancés pour suivre l'impact des optimisations.
+4. **Tests d'intégration complets** : Mettre en place des tests d'intégration entre l'agent Site Updater et les autres agents.
+5. **Dashboard d'analyse** : Développer une interface visuelle pour présenter les résultats des optimisations et tests.
 
 ## Ressources complémentaires
 
