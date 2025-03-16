@@ -1,67 +1,145 @@
-# Dashboard pour Dropshipping Crew AI
+# Dashboard Centralisé pour Dropshipping-Crew-AI
 
-## Vue d'ensemble
-
-Ce dashboard est une interface utilisateur complète pour gérer et surveiller le système Dropshipping Crew AI. Il permet de visualiser l'état des différents agents, lancer des analyses de marché, configurer la boutique et générer du contenu optimisé pour le SEO.
+Ce module fournit un dashboard centralisé pour piloter et surveiller l'ensemble des agents du système Dropshipping-Crew-AI.
 
 ## Fonctionnalités
 
-### 1. Vue d'ensemble du système
-- Affichage en temps réel du statut de tous les services
-- Métriques clés du projet (produits analysés, produits en boutique, commandes, chiffre d'affaires)
-- Performances du serveur (CPU, mémoire, disque)
-- Statut détaillé des agents IA
+- Vue d'ensemble de l'état du système
+- Pages détaillées pour chaque agent
+- Visualisation des métriques clés
+- Interface de configuration centralisée
+- Gestion des boutiques Shopify
+- Alertes et notifications en temps réel
 
-### 2. Gestion des agents
-- **Data Analyzer** : Analyse de marché et identification des produits à fort potentiel
-- **Website Builder** : Configuration et personnalisation de la boutique Shopify
-- **Content Generator** : Création de descriptions de produits optimisées pour le SEO
-- Statut et suivi des agents en développement (Order Manager, Site Updater)
+## Architecture
 
-### 3. Orchestration
-- Vue d'ensemble de l'architecture d'orchestration API
-- Visualisation des workflows entre agents
-- Suivi des tâches en cours
+Le dashboard est développé avec les technologies suivantes :
 
-## Structure du code
+- **Frontend** : React.js avec Tailwind CSS
+- **Backend** : API REST basée sur FastAPI
+- **Authentification** : Système JWT
+- **Visualisation** : Recharts
+- **Temps réel** : WebSockets
 
-Le dashboard est composé de trois fichiers JavaScript principaux :
+## Structure du module
 
-- `dashboard.js` : Fonctions de base pour l'initialisation du dashboard et la mise à jour des informations système
-- `dashboard_part2.js` : Fonctions pour les agents, métriques et gestion des actions utilisateur
-- `dashboard_part3.js` : Fonctions utilitaires pour les simulations et affichages spécifiques
-
-Cette séparation permet une meilleure organisation du code et facilite la maintenance.
-
-## Mise à jour du 12 mars 2025
-
-Cette mise à jour majeure du dashboard reflète les dernières avancées du projet :
-
-- Ajout d'une nouvelle section pour l'agent Content Generator désormais implémenté
-- Mise à jour du statut des agents pour refléter l'état actuel du projet
-- Ajout d'une section Orchestration pour visualiser les workflows entre agents
-- Amélioration visuelle et UX du dashboard
-- Affichage des métriques actualisées
-
-## Comment utiliser les fichiers JavaScript
-
-Pour utiliser les trois fichiers JavaScript, ajoutez les balises script suivantes à votre HTML :
-
-```html
-<script src="js/dashboard.js"></script>
-<script src="js/dashboard_part2.js"></script>
-<script src="js/dashboard_part3.js"></script>
+```
+dashboard/
+├── frontend/              # Application React
+│   ├── public/            # Fichiers statiques
+│   └── src/               # Code source React
+│       ├── components/    # Composants réutilisables
+│       ├── pages/         # Pages du dashboard
+│       ├── hooks/         # Hooks personnalisés
+│       ├── services/      # Services d'API
+│       ├── utils/         # Utilitaires
+│       ├── context/       # Contextes React
+│       └── assets/        # Images et ressources
+├── backend/               # API FastAPI
+│   ├── app/               # Application principale
+│   │   ├── api/           # Endpoints d'API
+│   │   ├── core/          # Configuration et utilitaires
+│   │   ├── db/            # Modèles et connexion BDD
+│   │   └── services/      # Services métier
+│   └── tests/             # Tests unitaires et d'intégration
+└── docker/                # Configuration Docker
+    ├── frontend/          # Dockerfile pour le frontend
+    └── backend/           # Dockerfile pour le backend
 ```
 
-Ou mettez à jour le fichier index.html pour charger ces trois fichiers au lieu d'un seul.
+## Pages principales
 
-## Captures d'écran
+1. **Page d'accueil / Vue d'ensemble**
+   - Widgets de statut des agents
+   - Métriques clés globales
+   - Alertes et notifications
+   - État des ressources système
 
-*Des captures d'écran seront ajoutées ici une fois que le dashboard sera déployé sur le serveur.*
+2. **Pages détaillées par agent**
+   - Data Analyzer : Analyse de marché et tendances
+   - Website Builder : Gestion du site Shopify
+   - Content Generator : Création et gestion du contenu
+   - Order Manager : Suivi des commandes et fournisseurs
+   - Site Updater : Optimisation et tests A/B
 
-## Prochaines étapes
+3. **Page de configuration**
+   - Intégrations API (Shopify, Claude, fournisseurs)
+   - Configuration par agent
+   - Gestion des utilisateurs
+   - Sauvegardes et restauration
 
-- **Intégration complète du moteur de workflow** : Mise en place des flux de travail automatisés entre agents
-- **Tableau de bord d'orchestration avancé** : Visualisation et contrôle des workflows en temps réel
-- **Système d'alerte** : Notification en cas d'erreurs ou d'opportunités détectées
-- **Interface pour les agents en développement** : Préparation des interfaces pour Order Manager et Site Updater
+4. **Page de gestion des boutiques Shopify**
+   - Performance des ventes
+   - Analyse du catalogue produits
+   - Gestion des fournisseurs
+   - Finances et rentabilité
+
+## Installation et démarrage
+
+### Prérequis
+
+- Node.js 18+
+- Docker et Docker Compose
+- Accès aux APIs des différents agents
+
+### Installation
+
+1. Cloner le dépôt :
+```bash
+git clone https://github.com/Godjoberto04/dropshipping-crew-ai.git
+cd dropshipping-crew-ai/services/dashboard
+```
+
+2. Configuration :
+```bash
+cp .env.example .env
+# Éditer le fichier .env avec vos paramètres
+```
+
+3. Démarrage avec Docker :
+```bash
+docker-compose up -d
+```
+
+4. Accès au dashboard :
+```
+http://localhost:3000
+```
+
+## Développement
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+### Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+## Roadmap de développement
+
+Voir le [plan de développement détaillé](../../docs/roadmap/dashboard-development-plan.md) pour le calendrier complet et les fonctionnalités à venir.
+
+## Intégration avec les agents
+
+Le dashboard communique avec les différents agents via l'API centralisée du système. Chaque agent expose des endpoints spécifiques qui sont consommés par le dashboard pour afficher les informations pertinentes et permettre le contrôle.
+
+## Sécurité
+
+- Authentification JWT
+- Gestion des rôles et permissions
+- Protection CSRF
+- Chiffrement des données sensibles
+- Audit logs pour les actions importantes
+
+## Contribution
+
+Lors du développement de nouvelles fonctionnalités pour le dashboard, veuillez suivre les conventions de code établies et ajouter des tests unitaires appropriés.
