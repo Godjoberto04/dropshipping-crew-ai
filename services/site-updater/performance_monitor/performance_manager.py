@@ -272,3 +272,143 @@ class PerformanceManager:
         
         logger.info(f"{len(issues)} problèmes de performance identifiés")
         return issues
+    
+    def generate_optimization_suggestions(self, issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Génère des suggestions d'optimisation en fonction des problèmes identifiés
+        
+        Args:
+            issues: Liste des problèmes identifiés
+            
+        Returns:
+            Liste des suggestions d'optimisation avec leur priorité et impact
+        """
+        logger.info("Génération des suggestions d'optimisation")
+        
+        suggestions = []
+        
+        # Création d'un dictionnaire pour regrouper les problèmes par type
+        issues_by_type = {}
+        for issue in issues:
+            issue_type = issue["type"]
+            if issue_type not in issues_by_type:
+                issues_by_type[issue_type] = []
+            issues_by_type[issue_type].append(issue)
+        
+        # Suggestions pour les problèmes de métriques de performance
+        if "performance_metric" in issues_by_type:
+            perf_issues = issues_by_type["performance_metric"]
+            
+            # Problèmes de temps de chargement
+            if any(i["metric"] in ["page_load_time", "largest_contentful_paint"] for i in perf_issues):
+                suggestions.append({
+                    "title": "Optimisation du temps de chargement",
+                    "description": "Amélioration du temps de chargement de la page",
+                    "actions": [
+                        "Implémentation du lazy loading pour les images",
+                        "Différer le chargement des scripts non critiques",
+                        "Mettre en cache les ressources statiques"
+                    ],
+                    "priority": "Élevée",
+                    "impact": "Majeur",
+                    "automatic": True
+                })
+            
+            # Problèmes de TTFB
+            if any(i["metric"] in ["time_to_first_byte", "server_response_time"] for i in perf_issues):
+                suggestions.append({
+                    "title": "Optimisation du temps de réponse serveur",
+                    "description": "Amélioration de la vitesse de réponse du serveur",
+                    "actions": [
+                        "Optimisation des requêtes à la base de données",
+                        "Mise en cache des pages avec des délais appropriés",
+                        "Vérification de la configuration du serveur Shopify"
+                    ],
+                    "priority": "Élevée",
+                    "impact": "Majeur",
+                    "automatic": False
+                })
+            
+            # Problèmes de CLS
+            if any(i["metric"] == "cumulative_layout_shift" for i in perf_issues):
+                suggestions.append({
+                    "title": "Stabilisation de la mise en page",
+                    "description": "Réduction des changements de mise en page pendant le chargement",
+                    "actions": [
+                        "Réserver de l'espace pour les éléments de taille variable",
+                        "Spécifier les dimensions des images dans le HTML",
+                        "Éviter d'insérer du contenu dynamique au-dessus du contenu existant"
+                    ],
+                    "priority": "Moyenne",
+                    "impact": "Modéré",
+                    "automatic": True
+                })
+        
+        # Suggestions pour les problèmes de ressources
+        if "resource_issue" in issues_by_type:
+            resource_issues = issues_by_type["resource_issue"]
+            
+            # Problèmes de JS/CSS non minifiés
+            if any(i["issue"] == "Non minifié" for i in resource_issues):
+                suggestions.append({
+                    "title": "Minification des ressources",
+                    "description": "Minification des fichiers JavaScript et CSS",
+                    "actions": [
+                        "Minifier tous les fichiers JS et CSS",
+                        "Activer la compression GZIP ou Brotli",
+                        "Utiliser la concaténation lorsque possible"
+                    ],
+                    "priority": "Moyenne",
+                    "impact": "Modéré",
+                    "automatic": True
+                })
+            
+            # Problèmes d'images
+            if any(i["resource_type"] == "images" for i in resource_issues):
+                suggestions.append({
+                    "title": "Optimisation des images",
+                    "description": "Optimisation et redimensionnement des images",
+                    "actions": [
+                        "Convertir les images en formats modernes (WebP, AVIF)",
+                        "Redimensionner les images aux dimensions d'affichage",
+                        "Compression des images sans perte de qualité significative",
+                        "Implémentation du lazy loading pour les images"
+                    ],
+                    "priority": "Élevée",
+                    "impact": "Majeur",
+                    "automatic": True
+                })
+        
+        # Suggestions pour le nombre de requêtes trop élevé
+        if "request_count" in issues_by_type:
+            suggestions.append({
+                "title": "Réduction du nombre de requêtes",
+                "description": "Diminution du nombre de fichiers chargés",
+                "actions": [
+                    "Concaténation des fichiers JavaScript et CSS",
+                    "Utilisation de sprites pour les petites images",
+                    "Intégration des petites ressources directement dans le HTML/CSS"
+                ],
+                "priority": "Moyenne",
+                "impact": "Modéré",
+                "automatic": True
+            })
+        
+        # Suggestions pour la taille totale des ressources
+        if "total_size" in issues_by_type:
+            suggestions.append({
+                "title": "Réduction de la taille totale des ressources",
+                "description": "Diminution du poids total de la page",
+                "actions": [
+                    "Audit et suppression des ressources inutilisées",
+                    "Optimisation des bibliothèques JavaScript",
+                    "Utilisation de CDN pour les bibliothèques communes",
+                    "Compression des ressources textuelles"
+                ],
+                "priority": "Élevée",
+                "impact": "Majeur",
+                "automatic": True
+            })
+        
+        logger.info(f"{len(suggestions)} suggestions d'optimisation générées")
+        return suggestions
