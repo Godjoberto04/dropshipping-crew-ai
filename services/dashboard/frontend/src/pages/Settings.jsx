@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { systemApi } from '../services/api';
 
+// Import des composants de paramètres
+import GeneralSettings from '../components/settings/GeneralSettings';
+import ShopifySettings from '../components/settings/ShopifySettings';
+import ClaudeSettings from '../components/settings/ClaudeSettings';
+import DropshippingSettings from '../components/settings/DropshippingSettings';
+import AutomationSettings from '../components/settings/AutomationSettings';
+
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(false);
@@ -93,7 +100,7 @@ const Settings = () => {
     });
   };
 
-  // Importe les composants de tabs
+  // Composant pour le contenu de l'onglet actif
   const TabContent = () => {
     switch (activeTab) {
       case 'general':
