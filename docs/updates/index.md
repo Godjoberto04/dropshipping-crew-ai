@@ -2,6 +2,14 @@
 
 ## Mars 2025
 
+### [28 Mars 2025](2025-03-28.md)
+**Développement de la page ContentGenerator pour le Dashboard Centralisé**
+- Implémentation d'une interface complète pour la génération de contenu SEO
+- Développement des composants pour la gestion des templates et la prévisualisation du contenu
+- Extension de l'API pour la communication avec l'agent Content Generator
+- Interface intuitive pour la génération de descriptions de produits
+- Architecture modulaire avec séparation claire des préoccupations
+
 ### [21 Mars 2025](2025-03-21.md)
 **Développement de la page WebsiteBuilder pour le Dashboard Centralisé**
 - Implémentation d'une interface complète de gestion de site Shopify
