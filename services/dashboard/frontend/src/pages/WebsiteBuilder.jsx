@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 import { getShopifyStore, refreshThemeCache, updateTheme, createCollection } from '../services/api';
+import { ThemesTab, CollectionsTab, PagesTab, SettingsTab } from '../components/dashboard/WebsiteBuilderComponents';
 
 // Component for website builder dashboard
 const WebsiteBuilder = () => {
@@ -256,7 +257,124 @@ const WebsiteBuilder = () => {
       {/* Tab Content */}
       <div className="mb-8">
         {/* Overview Tab Content */}
-        {activeTab === 'overview' && <OverviewTab storeData={storeData} />}
+        {activeTab === 'overview' && (
+          <div>
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-6">
+                <h2 className="text-xl font-semibold mb-4">Store Health</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left column */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-3">Technical Status</h3>
+                    <ul className="space-y-4">
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                        <div>
+                          <p className="font-medium">SSL Certificate</p>
+                          <p className="text-sm text-gray-600">Valid and secure</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Mobile Responsiveness</p>
+                          <p className="text-sm text-gray-600">Fully responsive on all devices</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Image Optimization</p>
+                          <p className="text-sm text-gray-600">12 images need optimization</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Checkout Process</p>
+                          <p className="text-sm text-gray-600">Working correctly</p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  {/* Right column */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-3">Content Status</h3>
+                    <ul className="space-y-4">
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Product Descriptions</p>
+                          <p className="text-sm text-gray-600">All products have complete descriptions</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                        <div>
+                          <p className="font-medium">SEO Elements</p>
+                          <p className="text-sm text-gray-600">Meta titles and descriptions are optimized</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Image Alt Tags</p>
+                          <p className="text-sm text-gray-600">8 images missing alt tags</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Legal Pages</p>
+                          <p className="text-sm text-gray-600">All required legal pages are present</p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold mb-4">Recent Updates</h2>
+                <div className="space-y-4">
+                  {storeData?.recentUpdates?.map((update, index) => (
+                    <div key={index} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                      <p className="font-medium">{update.title}</p>
+                      <p className="text-sm text-gray-600 mt-1">{update.description}</p>
+                      <p className="text-xs text-gray-500 mt-2">{new Date(update.date).toLocaleString()}</p>
+                    </div>
+                  ))}
+                  {(!storeData?.recentUpdates || storeData?.recentUpdates.length === 0) && (
+                    <p className="text-gray-500">No recent updates</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold mb-4">Recommended Actions</h2>
+                <ul className="space-y-3">
+                  {storeData?.recommendedActions?.map((action, index) => (
+                    <li key={index} className="flex items-start space-x-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+                      <div className={`p-1.5 rounded-full ${action.priority === 'high' ? 'bg-red-100' : action.priority === 'medium' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
+                        <div className={`h-2 w-2 rounded-full ${action.priority === 'high' ? 'bg-red-500' : action.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
+                      </div>
+                      <div>
+                        <p className="font-medium">{action.title}</p>
+                        <p className="text-sm text-gray-600 mt-1">{action.description}</p>
+                      </div>
+                    </li>
+                  ))}
+                  {(!storeData?.recommendedActions || storeData?.recommendedActions.length === 0) && (
+                    <p className="text-gray-500">No actions recommended at this time</p>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Themes Tab Content */}
         {activeTab === 'themes' && <ThemesTab themeData={themeData} />}
@@ -269,128 +387,6 @@ const WebsiteBuilder = () => {
         
         {/* Settings Tab Content */}
         {activeTab === 'settings' && <SettingsTab storeData={storeData} />}
-      </div>
-    </div>
-  );
-};
-
-// Overview Tab Component
-const OverviewTab = ({ storeData }) => {
-  return (
-    <div>
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Store Health</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left column */}
-            <div>
-              <h3 className="text-lg font-medium mb-3">Technical Status</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">SSL Certificate</p>
-                    <p className="text-sm text-gray-600">Valid and secure</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Mobile Responsiveness</p>
-                    <p className="text-sm text-gray-600">Fully responsive on all devices</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Image Optimization</p>
-                    <p className="text-sm text-gray-600">12 images need optimization</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Checkout Process</p>
-                    <p className="text-sm text-gray-600">Working correctly</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-            
-            {/* Right column */}
-            <div>
-              <h3 className="text-lg font-medium mb-3">Content Status</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Product Descriptions</p>
-                    <p className="text-sm text-gray-600">All products have complete descriptions</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">SEO Elements</p>
-                    <p className="text-sm text-gray-600">Meta titles and descriptions are optimized</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Image Alt Tags</p>
-                    <p className="text-sm text-gray-600">8 images missing alt tags</p>
-                  </div>
-                </li>
-                <li className="flex items-start">
-                  <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Legal Pages</p>
-                    <p className="text-sm text-gray-600">All required legal pages are present</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Recent Updates</h2>
-          <div className="space-y-4">
-            {storeData?.recentUpdates?.map((update, index) => (
-              <div key={index} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                <p className="font-medium">{update.title}</p>
-                <p className="text-sm text-gray-600 mt-1">{update.description}</p>
-                <p className="text-xs text-gray-500 mt-2">{new Date(update.date).toLocaleString()}</p>
-              </div>
-            ))}
-            {(!storeData?.recentUpdates || storeData?.recentUpdates.length === 0) && (
-              <p className="text-gray-500">No recent updates</p>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4">Recommended Actions</h2>
-          <ul className="space-y-3">
-            {storeData?.recommendedActions?.map((action, index) => (
-              <li key={index} className="flex items-start space-x-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
-                <div className={`p-1.5 rounded-full ${action.priority === 'high' ? 'bg-red-100' : action.priority === 'medium' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
-                  <div className={`h-2 w-2 rounded-full ${action.priority === 'high' ? 'bg-red-500' : action.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'}`}></div>
-                </div>
-                <div>
-                  <p className="font-medium">{action.title}</p>
-                  <p className="text-sm text-gray-600 mt-1">{action.description}</p>
-                </div>
-              </li>
-            ))}
-            {(!storeData?.recommendedActions || storeData?.recommendedActions.length === 0) && (
-              <p className="text-gray-500">No actions recommended at this time</p>
-            )}
-          </ul>
-        </div>
       </div>
     </div>
   );
