@@ -1,10 +1,10 @@
 # Dropshipping Autonome avec Crew AI
 
-> **🔔 MISE À JOUR: Développement actif du Dashboard Centralisé**  
-> Un dashboard centralisé pour piloter l'ensemble des agents est en cours de développement actif. L'architecture frontend React est en place, avec des composants essentiels implémentés pour la vue d'ensemble, la configuration et l'intégration avec les agents. Voir la [dernière mise à jour](docs/updates/2025-03-20.md) pour plus de détails.
+> **🔔 MISE À JOUR: Développement de la page WebsiteBuilder pour le Dashboard Centralisé**  
+> Une interface complète pour la gestion des sites Shopify a été développée pour le Dashboard Centralisé. Les utilisateurs peuvent désormais gérer les thèmes, collections, pages et paramètres de leur boutique via une interface intuitive et réactive. Voir la [dernière mise à jour](docs/updates/2025-03-21.md) pour plus de détails.
 
-> **✅ MISE À JOUR PRÉCÉDENTE: Implémentation complète du module Performance Monitor pour l'agent Site Updater**  
-> Le module Performance Monitor a été implémenté et est désormais opérationnel. Ce module permet de surveiller et d'optimiser automatiquement les performances du site e-commerce. Avec cette mise à jour, l'agent Site Updater est maintenant complet avec ses 5 modules.
+> **✅ MISE À JOUR PRÉCÉDENTE: Développement actif du Dashboard Centralisé**  
+> Un dashboard centralisé pour piloter l'ensemble des agents est en cours de développement actif. L'architecture frontend React est en place, avec des composants essentiels implémentés pour la vue d'ensemble, la configuration et l'intégration avec les agents. Voir la [mise à jour du 20 mars](docs/updates/2025-03-20.md) pour plus de détails.
 
 Système autonome de dropshipping géré par une flotte d'agents d'IA utilisant Crew AI.
 
@@ -30,6 +30,13 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
     - ✅ SEO Optimization: Opérationnel
     - ✅ Performance Monitor: Opérationnel
   - 🔨 Dashboard Centralisé: En développement actif
+    - ✅ Vue d'ensemble: Opérationnel
+    - ✅ Data Analyzer: Opérationnel 
+    - ✅ Website Builder: Opérationnel
+    - 🔨 Content Generator: En développement
+    - 🔨 Order Manager: En développement
+    - 🔨 Site Updater: En développement
+    - ✅ Paramètres: Opérationnel
 
 ## 📊 Architecture du système
 
@@ -40,11 +47,11 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
 
 ## 📝 Mises à jour
 
-- [Mars 20, 2025 🔔](docs/updates/2025-03-20.md) - Développement actif du Dashboard Centralisé
+- [Mars 21, 2025 🔔](docs/updates/2025-03-21.md) - Développement de la page WebsiteBuilder pour le Dashboard Centralisé
+- [Mars 20, 2025](docs/updates/2025-03-20.md) - Développement actif du Dashboard Centralisé
 - [Mars 19, 2025](docs/updates/2025-03-19.md) - Implémentation complète du module Performance Monitor pour l'agent Site Updater
 - [Mars 18, 2025](docs/updates/2025-03-18.md) - Implémentation du module SEO Optimization pour l'agent Site Updater
 - [Mars 17, 2025](docs/updates/2025-03-17.md) - Début du développement de l'agent Site Updater
-- [Mars 16, 2025](docs/updates/2025-03-16.md) - Nouveau module d'analyse de complémentarité, système de bundles intelligents
 - [Toutes les mises à jour](docs/updates/index.md)
 
 ## 💻 Installation et déploiement
