@@ -2,6 +2,14 @@
 
 ## Mars 2025
 
+### [20 Mars 2025](2025-03-20.md)
+**Développement du Dashboard Centralisé**
+- Mise en place de l'infrastructure frontend React avec Tailwind CSS
+- Création des composants essentiels et services API
+- Développement des pages principales (Vue d'ensemble, Data Analyzer, Paramètres)
+- Système d'authentification et de gestion des configurations
+- Plan de développement des fonctionnalités à venir
+
 ### [19 Mars 2025](2025-03-19.md)
 **Implémentation complète du module Performance Monitor pour l'agent Site Updater**
 - Finalisation de l'agent Site Updater avec l'ajout du dernier module
