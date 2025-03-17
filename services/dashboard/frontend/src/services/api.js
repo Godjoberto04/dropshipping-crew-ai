@@ -65,6 +65,16 @@ export const websiteBuilderApi = {
   getPages: () => apiClient.get('/website-builder/pages'),
   getThemes: () => apiClient.get('/website-builder/themes'),
   updateSite: (updates) => apiClient.put('/website-builder/update', updates),
+  getCollections: () => apiClient.get('/website-builder/collections'),
+  createCollection: (collectionData) => apiClient.post('/website-builder/collections', collectionData),
+  updateCollection: (collectionId, data) => apiClient.put(`/website-builder/collections/${collectionId}`, data),
+  deleteCollection: (collectionId) => apiClient.delete(`/website-builder/collections/${collectionId}`),
+  createPage: (pageData) => apiClient.post('/website-builder/pages', pageData),
+  updatePage: (pageId, data) => apiClient.put(`/website-builder/pages/${pageId}`, data),
+  deletePage: (pageId) => apiClient.delete(`/website-builder/pages/${pageId}`),
+  updateTheme: (themeId, settings) => apiClient.put(`/website-builder/themes/${themeId}`, settings),
+  refreshThemeCache: () => apiClient.post('/website-builder/themes/refresh-cache'),
+  getSiteMetrics: () => apiClient.get('/website-builder/metrics'),
 };
 
 export const contentGeneratorApi = {
@@ -97,4 +107,40 @@ export const systemApi = {
   getConfiguration: () => apiClient.get('/system/configuration'),
   updateConfiguration: (config) => apiClient.put('/system/configuration', config),
   getLogs: (service, level) => apiClient.get(`/system/logs?service=${service}&level=${level}`),
+};
+
+// Fonctions exportées utilisées par WebsiteBuilder.jsx
+export const getShopifyStore = async () => {
+  try {
+    const siteStatusResponse = await websiteBuilderApi.getSiteStatus();
+    const themesResponse = await websiteBuilderApi.getThemes();
+    const pagesResponse = await websiteBuilderApi.getPages();
+    const collectionsResponse = await websiteBuilderApi.getCollections();
+    const metricsResponse = await websiteBuilderApi.getSiteMetrics();
+
+    return {
+      store: {
+        ...siteStatusResponse.data,
+        metrics: metricsResponse.data
+      },
+      theme: themesResponse.data,
+      pages: pagesResponse.data,
+      collections: collectionsResponse.data
+    };
+  } catch (error) {
+    console.error('Error fetching Shopify store data:', error);
+    throw error;
+  }
+};
+
+export const refreshThemeCache = async () => {
+  return websiteBuilderApi.refreshThemeCache();
+};
+
+export const updateTheme = async (themeId, settings) => {
+  return websiteBuilderApi.updateTheme(themeId, settings);
+};
+
+export const createCollection = async (collectionData) => {
+  return websiteBuilderApi.createCollection(collectionData);
 };
