@@ -1,13 +1,16 @@
 # Dropshipping Autonome avec Crew AI
 
-> **✅ MISE À JOUR: Implémentation complète du module Performance Monitor pour l'agent Site Updater**  
-> Le module Performance Monitor a été implémenté et est désormais opérationnel. Ce module permet de surveiller et d'optimiser automatiquement les performances du site e-commerce. Avec cette mise à jour, l'agent Site Updater est maintenant complet avec ses 5 modules. La documentation a été mise à jour en conséquence.
+> **🔔 MISE À JOUR: Développement actif du Dashboard Centralisé**  
+> Un dashboard centralisé pour piloter l'ensemble des agents est en cours de développement actif. L'architecture frontend React est en place, avec des composants essentiels implémentés pour la vue d'ensemble, la configuration et l'intégration avec les agents. Voir la [dernière mise à jour](docs/updates/2025-03-20.md) pour plus de détails.
+
+> **✅ MISE À JOUR PRÉCÉDENTE: Implémentation complète du module Performance Monitor pour l'agent Site Updater**  
+> Le module Performance Monitor a été implémenté et est désormais opérationnel. Ce module permet de surveiller et d'optimiser automatiquement les performances du site e-commerce. Avec cette mise à jour, l'agent Site Updater est maintenant complet avec ses 5 modules.
 
 Système autonome de dropshipping géré par une flotte d'agents d'IA utilisant Crew AI.
 
 ## 🔍 Vue d'ensemble
 
-Système entièrement autonome pour gérer une boutique de dropshipping en exploitant les capacités de Claude et des agents IA. Le système est composé de 5 agents spécialisés qui travaillent ensemble pour analyser le marché, créer et gérer une boutique Shopify, générer du contenu optimisé SEO, gérer les commandes et maintenir le site à jour.
+Système entièrement autonome pour gérer une boutique de dropshipping en exploitant les capacités de Claude et des agents IA. Le système est composé de 5 agents spécialisés qui travaillent ensemble pour analyser le marché, créer et gérer une boutique Shopify, générer du contenu optimisé SEO, gérer les commandes et maintenir le site à jour. Un dashboard centralisé est en cours de développement pour faciliter le pilotage de l'ensemble du système.
 
 ## 🚀 Déploiement actuel
 
@@ -26,6 +29,7 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
     - ✅ Product Rotation: Opérationnel
     - ✅ SEO Optimization: Opérationnel
     - ✅ Performance Monitor: Opérationnel
+  - 🔨 Dashboard Centralisé: En développement actif
 
 ## 📊 Architecture du système
 
@@ -36,11 +40,11 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
 
 ## 📝 Mises à jour
 
-- [Mars 19, 2025 🆕](docs/updates/2025-03-19.md) - Implémentation complète du module Performance Monitor pour l'agent Site Updater
+- [Mars 20, 2025 🔔](docs/updates/2025-03-20.md) - Développement actif du Dashboard Centralisé
+- [Mars 19, 2025](docs/updates/2025-03-19.md) - Implémentation complète du module Performance Monitor pour l'agent Site Updater
 - [Mars 18, 2025](docs/updates/2025-03-18.md) - Implémentation du module SEO Optimization pour l'agent Site Updater
 - [Mars 17, 2025](docs/updates/2025-03-17.md) - Début du développement de l'agent Site Updater
 - [Mars 16, 2025](docs/updates/2025-03-16.md) - Nouveau module d'analyse de complémentarité, système de bundles intelligents
-- [Mars 15, 2025](docs/updates/2025-03-15.md) - Implémentation complète du module d'analyse Google Trends, analyse prédictive
 - [Toutes les mises à jour](docs/updates/index.md)
 
 ## 💻 Installation et déploiement
@@ -56,7 +60,7 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
 - [Agent Order Manager](docs/usage/order-manager.md)
 - [Agent Site Updater](docs/usage/site-updater.md)
 
-## 🧪 Tests unitaires
+## 🔬 Tests unitaires
 
 - [Tests et couverture](docs/testing/overview.md)
 
@@ -64,8 +68,9 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
 
 - [Points d'amélioration identifiés](docs/roadmap/improvement-points.md)
 - [Prochaines étapes](docs/roadmap/next-steps.md)
+- [Plan de développement du Dashboard](docs/roadmap/dashboard-development-plan.md)
 
-## 📑 Documentation complémentaire
+## 📋 Documentation complémentaire
 
 - [Guide complet de la documentation](docs/index.md)
 
@@ -81,6 +86,6 @@ Système entièrement autonome pour gérer une boutique de dropshipping en explo
 
 Ce projet est développé par un passionné d'IA autonome. Pour toute question ou suggestion, ouvrez une issue sur ce dépôt ou contactez le propriétaire.
 
-## 📄 Licence
+## 📜 Licence
 
 Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
