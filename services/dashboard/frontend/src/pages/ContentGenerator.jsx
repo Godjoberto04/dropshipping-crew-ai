@@ -194,3 +194,108 @@ const ContentGenerator = () => {
       </div>
     );
   }
+
+  return (
+    <div className="container px-6 mx-auto">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-800">Content Generator</h1>
+          <p className="text-gray-500">Generate optimized content for your e-commerce store</p>
+        </div>
+        <div>
+          <button
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors"
+            onClick={() => setActiveTab(activeTab === 'templates' ? 'generator' : 'templates')}
+          >
+            {activeTab === 'templates' ? (
+              <>
+                <Edit size={18} className="mr-2" />
+                Back to Generator
+              </>
+            ) : (
+              <>
+                <FileText size={18} className="mr-2" />
+                Browse Templates
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Statistics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <ContentStatisticsCard
+          icon={<FileText className="h-6 w-6 text-blue-600" />}
+          title="Total Content"
+          value={statistics?.totalGenerated || 0}
+          description="Items generated"
+        />
+
+        <ContentStatisticsCard
+          icon={<Tag className="h-6 w-6 text-green-600" />}
+          title="Product Descriptions"
+          value={statistics?.productDescriptions || 0}
+          description="Descriptions created"
+        />
+
+        <ContentStatisticsCard
+          icon={<Edit className="h-6 w-6 text-purple-600" />}
+          title="SEO Optimizations"
+          value={statistics?.seoOptimizations || 0}
+          description="Content pieces improved"
+        />
+
+        <ContentStatisticsCard
+          icon={<BarChart2 className="h-6 w-6 text-indigo-600" />}
+          title="Avg. Quality Score"
+          value={`${statistics?.avgQualityScore || 0}%`}
+          description="Based on SEO metrics"
+        />
+      </div>
+
+      {/* Tabs for Content Generator */}
+      <div className="border-b border-gray-200 mb-6">
+        <ul className="flex flex-wrap -mb-px">
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'generator' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('generator')}
+            >
+              Generator
+            </button>
+          </li>
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'templates' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('templates')}
+            >
+              Templates
+            </button>
+          </li>
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'history' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('history')}
+            >
+              History
+            </button>
+          </li>
+          <li>
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'settings' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              Settings
+            </button>
+          </li>
+        </ul>
+      </div>
