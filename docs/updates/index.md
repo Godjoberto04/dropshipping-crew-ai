@@ -2,6 +2,14 @@
 
 ## Mars 2025
 
+### [21 Mars 2025](2025-03-21.md)
+**Développement de la page WebsiteBuilder pour le Dashboard Centralisé**
+- Implémentation d'une interface complète de gestion de site Shopify
+- Développement des fonctionnalités de gestion des thèmes, collections et pages
+- Extension de l'API pour supporter les nouvelles fonctionnalités
+- Création de composants réutilisables pour une expérience utilisateur optimale
+- Architecture modulaire avec séparation des préoccupations
+
 ### [20 Mars 2025](2025-03-20.md)
 **Développement du Dashboard Centralisé**
 - Mise en place de l'infrastructure frontend React avec Tailwind CSS
