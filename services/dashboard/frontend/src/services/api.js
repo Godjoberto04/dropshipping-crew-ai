@@ -81,6 +81,16 @@ export const contentGeneratorApi = {
   getStatistics: () => apiClient.get('/content-generator/statistics'),
   getTemplates: () => apiClient.get('/content-generator/templates'),
   generateContent: (params) => apiClient.post('/content-generator/generate', params),
+  getContentHistory: (type = 'all') => apiClient.get(`/content-generator/history?type=${type}`),
+  getContentSettings: () => apiClient.get('/content-generator/settings'),
+  updateContentSettings: (settings) => apiClient.put('/content-generator/settings', settings),
+  getContentById: (id) => apiClient.get(`/content-generator/content/${id}`),
+  updateContent: (id, content) => apiClient.put(`/content-generator/content/${id}`, content),
+  deleteContent: (id) => apiClient.delete(`/content-generator/content/${id}`),
+  publishContent: (id, destination) => apiClient.post(`/content-generator/content/${id}/publish`, { destination }),
+  createTemplate: (template) => apiClient.post('/content-generator/templates', template),
+  updateTemplate: (id, template) => apiClient.put(`/content-generator/templates/${id}`, template),
+  deleteTemplate: (id) => apiClient.delete(`/content-generator/templates/${id}`),
 };
 
 export const orderManagerApi = {
@@ -129,6 +139,17 @@ export const getShopifyStore = async () => {
     };
   } catch (error) {
     console.error('Error fetching Shopify store data:', error);
+    throw error;
+  }
+};
+
+// Fonctions exportées utilisées par ContentGenerator.jsx
+export const getContentGeneratorData = async () => {
+  try {
+    const statisticsResponse = await contentGeneratorApi.getStatistics();
+    return statisticsResponse.data;
+  } catch (error) {
+    console.error('Error fetching content generator data:', error);
     throw error;
   }
 };
