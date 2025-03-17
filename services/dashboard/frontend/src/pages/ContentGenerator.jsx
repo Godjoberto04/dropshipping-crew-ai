@@ -253,3 +253,49 @@ const ContentGenerator = () => {
           description="Based on SEO metrics"
         />
       </div>
+
+      {/* Tabs for Content Generator */}
+      <div className="border-b border-gray-200 mb-6">
+        <ul className="flex flex-wrap -mb-px">
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'generator' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('generator')}
+            >
+              Generator
+            </button>
+          </li>
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'templates' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('templates')}
+            >
+              Templates
+            </button>
+          </li>
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'history' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('history')}
+            >
+              History
+            </button>
+          </li>
+          <li>
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'settings' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              Settings
+            </button>
+          </li>
+        </ul>
+      </div>
