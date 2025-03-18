@@ -256,3 +256,162 @@ const ContentGenerator = () => {
           description="Based on SEO metrics"
         />
       </div>
+
+      {/* Tabs for Content Generator */}
+      <div className="border-b border-gray-200 mb-6">
+        <ul className="flex flex-wrap -mb-px">
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'generator' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('generator')}
+            >
+              Generator
+            </button>
+          </li>
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'templates' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('templates')}
+            >
+              Templates
+            </button>
+          </li>
+          <li className="mr-2">
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'history' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('history')}
+            >
+              History
+            </button>
+          </li>
+          <li>
+            <button 
+              className={`inline-block py-4 px-4 text-sm font-medium ${activeTab === 'settings' 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent'}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              Settings
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      {/* Tab Content */}
+      <div className="mb-8">
+        {/* Generator Tab Content */}
+        {activeTab === 'generator' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Generator Form */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-semibold mb-4">Generate Content</h2>
+                
+                {/* Template Selection */}
+                <div className="mb-5">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Selected Template</label>
+                    <button 
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                      onClick={() => setActiveTab('templates')}
+                    >
+                      Change
+                    </button>
+                  </div>
+                  
+                  {selectedTemplate ? (
+                    <div className="bg-gray-50 p-3 rounded-md">
+                      <div className="flex items-center">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          selectedTemplate.type === 'product' ? 'bg-blue-100 text-blue-600' : 
+                          selectedTemplate.type === 'category' ? 'bg-green-100 text-green-600' : 
+                          'bg-purple-100 text-purple-600'
+                        }`}>
+                          {selectedTemplate.type === 'product' ? <Tag size={14} /> : 
+                           selectedTemplate.type === 'category' ? <BookOpen size={14} /> : 
+                           <FileText size={14} />}
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="font-medium text-sm">{selectedTemplate.name}</h3>
+                          <p className="text-xs text-gray-500">{selectedTemplate.type} • {selectedTemplate.language}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 p-3 rounded-md text-center">
+                      <p className="text-sm text-gray-500">No template selected</p>
+                      <button 
+                        className="mt-2 text-sm text-blue-600 hover:text-blue-800 flex items-center justify-center mx-auto"
+                        onClick={() => setActiveTab('templates')}
+                      >
+                        <PlusCircle size={14} className="mr-1" />
+                        Select Template
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Info */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Product Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="productName"
+                    value={formData.productName}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., Professional Wireless Headphones"
+                    required
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Product Features (one per line)
+                  </label>
+                  <textarea
+                    name="productFeatures"
+                    value={formData.productFeatures}
+                    onChange={handleInputChange}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., 40-hour battery life&#10;Active noise cancellation&#10;Bluetooth 5.0 connectivity"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price
+                    </label>
+                    <input
+                      type="text"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., 99.99"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Brand
+                    </label>
+                    <input
+                      type="text"
+                      name="brand"
+                      value={formData.brand}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., TechSound"
+                    />
+                  </div>
+                </div>
